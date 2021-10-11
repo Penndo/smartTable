@@ -3,7 +3,7 @@ import { useRef, useState } from "react"
 import { v4 as uuidv4 } from "uuid"
 import TableEdit from "./TableEdit"
 
-import "./index.less"
+import "./index.module.less"
 
 //同步行&列数据，更新过来的新数据与上一次的数据进行更新交换，数组长度只增加不减少
 function sync(preData,newData){
@@ -274,7 +274,7 @@ export default function Table(props) {
                 />
             </div>
 
-            <table style={props.style}>
+            <table>
                 <thead>
                     <tr>
                         {renderHead.map((cell) => {

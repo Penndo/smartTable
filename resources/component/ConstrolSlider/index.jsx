@@ -3,11 +3,10 @@ import TextStyleSetting from "./TextStyle"
 import TableBg from "./TableBg"
 import CellPaddingSetting from "./CellPadding"
 import FormInputV from "./FormInputV"
-// import TableSizeSetting from "./TableSize"
 import CellAmount from "./CellAmount"
 import TableData from "./TableData"
 import ButtonGroup from "./ButtonGroup"
-import "./index.less"
+import style from "./index.module.less"
 
 
 export default function ConstrolSlider(props){
@@ -16,9 +15,9 @@ export default function ConstrolSlider(props){
     const {getDetails,renderData,controlData} = props
 
     return (
-        <div className="constrolSlider">
+        <div className={style.constrolSlider}>
 
-            <div className="configureArea">
+            <div className={style.configureArea}>
 
                 {/* <TableSizeSetting /> */}
 
@@ -38,7 +37,7 @@ export default function ConstrolSlider(props){
 
             </div>
 
-            <div className="buttonGroup">
+            <div className={style.buttonGroup}>
                     <ButtonGroup renderData={renderData} controlData={controlData}/>
             </div>
 

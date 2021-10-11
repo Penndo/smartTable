@@ -1,7 +1,7 @@
 import * as React from "react"
 import Table from "../Table"
 import ConstrolSlider from "../ConstrolSlider"
-import "./index.less"
+import "./index.module.less"
 import { useState } from "react"
 
 
