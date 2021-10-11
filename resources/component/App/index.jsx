@@ -1,7 +1,7 @@
 import * as React from "react"
 import Table from "../Table"
 import ConstrolSlider from "../ConstrolSlider"
-import "./index.module.less"
+import style from "./index.module.less"
 import { useState } from "react"
 
 
@@ -54,7 +54,7 @@ export default function App(){
         },[])
 
     return (
-        <div>
+        <div className={style.container}>
             <Table controlData={controlData} getDetails={getDetails} getRenderData={getRenderData}/>
             <ConstrolSlider controlData={controlData} getDetails={getDetails} renderData={renderData}/>
         </div>

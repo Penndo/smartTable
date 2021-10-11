@@ -3,7 +3,7 @@ import { useRef, useState } from "react"
 import { v4 as uuidv4 } from "uuid"
 import TableEdit from "./TableEdit"
 
-import "./index.module.less"
+import style from "./index.module.less"
 
 //同步行&列数据，更新过来的新数据与上一次的数据进行更新交换，数组长度只增加不减少
 function sync(preData,newData){
@@ -259,7 +259,7 @@ export default function Table(props) {
     const {top,right,bottom,left} = props.controlData.padding
 
     return (
-        <div>
+        <div className={style.tableContainer}>
             {/* 这里创建右键菜单，默认隐藏 */}
             <div ref={rightPanel} >
                 <TableEdit 

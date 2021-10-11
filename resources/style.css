@@ -2,7 +2,7 @@
 
 html {
   box-sizing: border-box;
-  background: transparent;
+  background: white;
 
   /* Prevent the page to be scrollable */
   overflow: hidden;
