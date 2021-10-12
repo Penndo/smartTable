@@ -261,7 +261,7 @@ export default function Table(props) {
     return (
         <div className={style.tableContainer}>
             {/* 这里创建右键菜单，默认隐藏 */}
-            <div ref={rightPanel} >
+            <div className={style.rightPanel} ref={rightPanel} >
                 <TableEdit 
                     display={visable}
                     addRowOnTop={changeRow("front")} 
@@ -274,7 +274,7 @@ export default function Table(props) {
                 />
             </div>
 
-            <table>
+            <table frame="void">
                 <thead>
                     <tr>
                         {renderHead.map((cell) => {
