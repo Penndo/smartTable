@@ -7,7 +7,7 @@ const webviewIdentifier = 'smarttable.webview'
 export default function () {
   const options = {
     identifier: webviewIdentifier,
-    width: 1024,
+    width: 1280,
     height: 768,
     show: false
   }
