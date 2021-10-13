@@ -39,37 +39,34 @@ export default function () {
       .catch(console.error)
   })
 
-  function reducer(a,b){
+  function addReducer(a,b){
     return a+b;
   }
 
+  
+
   browserWindow.loadURL(require('../resources/webview.html'))
   browserWindow.webContents.on('insert', function(renderData,controlData){
-
-    let widthArr = [0]
+    
+    let rowGroupArr = [];
 
     console.log(selectedLayers[0]);
     let heightStorage = {};
 
     renderData.map((row,rowIndex)=>{
-      let rowGroup = new Group({
-        name: 'row',
-        parent:selectedLayers[0],
-      });
-
-      rowGroup.frame.y = 33 * rowIndex;
-      rowGroup.frame.height = 33;
-
+      let widthArr = [0]
+      let cellGroupArr = [];
       const rowArr = Object.keys(row);
 
       rowArr.map((cell,cellIndex)=>{
 
         if(cell !== "key"){
+
           //定义表格内容
           const cellText = new Text({
             type:Text,
             text:row[cell],
-            name:"cell#",
+            name:"cellText",
           });
           cellText.frame.x = 8;
           cellText.frame.y = 8;
@@ -78,6 +75,7 @@ export default function () {
           const cellBg = new ShapePath({
             type: ShapePath,
             shapeType: ShapePath.ShapeType.Rectangle,
+            name:"cellBg",
             frame:{
               x:0,
               y:0,
@@ -95,37 +93,60 @@ export default function () {
                   borders:[],
                   styleType: Layer,
             },
-            name:"rectangle"
           })
 
-
-
-          //编组
+          //将表格内容与表格背景编组并整合为一行
           let cellGroup = new Group({
-            name: 'my name',
-            parent:rowGroup,
+            name: 'cell',
             frame:{
-              x:widthArr.reduce(reducer),
+              //x 位置为前一个编组的宽度
+              x:widthArr.reduce(addReducer),
               y:0,
+              //宽高为表格背景的宽度
               width:cellBg.frame.width,
               height:cellBg.frame.height
             },
             layers: [cellBg,cellText],
           });
 
-          cellGroup.hasFixedHeight = false;
-          cellGroup.hasFixedHeight = true;
+          //将单元格编组放入一个数组中，供下方的行编组使用。
+          cellGroupArr.push(cellGroup);
           Object.assign(heightStorage, {"height":cellGroup.frame.height});
-          if((cellIndex+1) % 4 !== 0){
-            widthArr.push(cellGroup.frame.width)
-          }else{
-            widthArr = [0]
-          }
-          
-
+          widthArr.push(cellGroup.frame.width)
         }
       })      
+
+      //将上面的单元格编组放入到 行内容编组中
+      let rowGroup = new Group({
+        name: 'row',
+        // parent:selectedLayers[0],
+        //这里一定要注意 frame 和 layers 的顺序。如果 layers 在前，那么后面设置的 frame 将对先生成的内容进行拉伸。
+        frame:{
+          x:0,
+          y:heightStorage.height*rowIndex,
+          width:widthArr.reduce(addReducer),
+          height:heightStorage.height
+        },
+        layers:cellGroupArr,
+      });
+
+      rowGroupArr.push(rowGroup)
+
     })
+
+    //最后将行内容编组放入最终的table中
+    new Group({
+      name:'smartTable',
+      parent:selectedLayers[0],
+      frame:{
+        x:24,
+        y:24,
+        width:400,
+        height:165
+      },
+      layers:rowGroupArr
+    })
+
   })
 }
 
