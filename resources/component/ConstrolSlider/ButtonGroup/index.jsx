@@ -7,8 +7,9 @@ class ButtonGroup extends React.Component {
 
     //点击确定的时候传递数据
     transData = () => {
-        console.log(this.props.renderData);
-        console.log(this.props.controlData)
+        const renderData = this.props.renderData;
+        const controlData = this.props.controlData;
+        postMessage('insert',renderData,controlData);
     }
     //点击取消的时候需要关闭窗口
     
