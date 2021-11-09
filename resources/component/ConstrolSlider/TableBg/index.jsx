@@ -55,11 +55,11 @@ class TableBg extends React.Component {
             data: newData,
         })
 
-        this.props.getDetails(this.props.name, newData)
+        this.props.getControlData(this.props.name, newData)
     }
 
     render(){
-        const {defaultColor, toggleLabel, switchColorPicker, getDetails} = this.props;
+        const {defaultColor, toggleLabel,switchColor, switchColorPicker, getControlData} = this.props;
         const {historyColor} = this.state
         return(
             <div>
@@ -72,18 +72,20 @@ class TableBg extends React.Component {
                         <label>颜色</label>
                     </div>
 
-                    {/*隔行换色*/}
-                    <ColorSwitch 
-                        name = "intervalColor" 
-                        defaultColor={defaultColor} 
-                        //这里为什么使用了 historyColor ?
-                        historyColor={historyColor} 
-                        toggleLabel={toggleLabel} 
-                        switchColorPicker={switchColorPicker} 
-                        getDetails={getDetails}
-                        getValue={this.getValue} 
-                        getSwitchState={this.getSwitchState} 
-                    />
+                    {/*填充色*/}
+                    <div style={{display:switchColor?"block":"none"}}>
+                        <ColorSwitch 
+                            name = "intervalColor" 
+                            defaultColor={defaultColor} 
+                            historyColor={historyColor} 
+                            toggleLabel={toggleLabel} 
+                            switchColorPicker={switchColorPicker} 
+                            getControlData={getControlData}
+                            getValue={this.getValue} 
+                            getSwitchState={this.getSwitchState} 
+                        />
+                    </div>
+
                     
 
                 </div>

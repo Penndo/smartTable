@@ -25,9 +25,9 @@ class TextStyleSetting extends React.Component {
         this.setState({
             data: newData
         })
-        //这里如果更新数据传递的是 data,那么数据将产生滞后，因为这里的data保存的是上一次操作的状态，在执行getValue时，getDetails()也会同时执行，因此传递出去的数据会是上一次操作的数据。
-        // this.props.getDetails(this.props.name, data)
-        this.props.getDetails(this.props.name, newData)
+        //这里如果更新数据传递的是 data,那么数据将产生滞后，因为这里的data保存的是上一次操作的状态，在执行getValue时，getControlData()也会同时执行，因此传递出去的数据会是上一次操作的数据。
+        // this.props.getControlData(this.props.name, data)
+        this.props.getControlData(this.props.name, newData)
     }
 
     render(){

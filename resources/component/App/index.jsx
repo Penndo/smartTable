@@ -1,11 +1,13 @@
 import * as React from "react"
 import Table from "../Table"
 import ConstrolSlider from "../ConstrolSlider"
-import style from "./index.module.less"
+import styles from "./index.module.less"
 import { useState } from "react"
 
 
 export default function App(){
+
+    const [cellSize, setCellSize] = useState({});
 
     const [controlData, setControlData] = useState({
         tableWidth:"640",
@@ -31,32 +33,68 @@ export default function App(){
             basicColor:"#D8D8D8",
             intervalColor:""
         },
+        theadFill:{
+            basicColor:"#FFFFFF"
+        },
         textStyle:{
+            basicColor:"#333333",
+            fontSize:"14",
+            fontWeight:"normal"
+        },
+        theadTextStyle:{
             basicColor:"#333333",
             fontSize:"14",
             fontWeight:"normal"
         }
     })
+    const getCellSize = React.useCallback(
+        (data)=>{
+            setCellSize(data);
+        },[]
+    )
 
     //更新样式表
-    function getDetails(name,data){
-        // console.log(dataDetails)
-        setControlData({
-            ...controlData,[name]:data
-        })
-    }
+    const getControlData = React.useCallback(
+        (name,data)=>{
+            setControlData({
+                ...controlData,[name]:data
+            })
+        },[controlData]
+    )
 
-    const [renderData, setRenderData] = useState([])
+    const [renderData, setRenderData] = useState([]);
+    const [renderHead, setRenderHead] = useState([]);
 
     const getRenderData = React.useCallback(
         (data) => {
             setRenderData(data);
-        },[])
+        },[]
+    )
+
+    const getRenderHead = React.useCallback(
+        (data) => {
+            setRenderHead(data)
+        },[]
+    )
 
     return (
-        <div className={style.container}>
-            <Table controlData={controlData} getDetails={getDetails} getRenderData={getRenderData}/>
-            <ConstrolSlider controlData={controlData} getDetails={getDetails} renderData={renderData}/>
+        <div className={styles["container"]}>
+            <Table 
+                controlData={controlData} 
+                getControlData={getControlData} 
+                getRenderData={getRenderData} 
+                getRenderHead={getRenderHead}
+                cellSize={cellSize} 
+                getCellSize={getCellSize}
+            />
+
+            <ConstrolSlider 
+                cellSize={cellSize}
+                controlData={controlData} 
+                getControlData={getControlData} 
+                renderData={renderData}
+                renderHead={renderHead}
+            />
         </div>
     )
 }

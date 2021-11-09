@@ -22,7 +22,7 @@ class CellAmount extends React.Component {
             data: newData
         })
 
-        this.props.getDetails(this.props.name, newData)
+        this.props.getControlData(this.props.name, newData)
     }
 
     componentDidUpdate(prevProps){

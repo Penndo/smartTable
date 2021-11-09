@@ -2,6 +2,7 @@ import * as React from "react"
 import { useRef, useState } from "react"
 import { v4 as uuidv4 } from "uuid"
 import TableEdit from "./TableEdit"
+// import dragWidth from "./dragWidth"
 
 import style from "./index.module.less"
 
@@ -32,26 +33,52 @@ function sync(preData,newData){
     }
 }
 
-export default function Table(props) {
+//获取当前事件的位置
+function eventPosition(e) {
+    //获取点击的td
+    let currentTd = e.target.tagName === "TD" ? e.target : e.target.parentNode;
+    //获取点击的tr
+    let currentTr = e.target.tagName === "TD" ? e.target.parentNode : e.target.parentNode.parentNode;
+    //获取所有的tds
+    let tds = currentTr.childNodes
+    //获取所有的trs
+    let trs = currentTr.parentNode.childNodes
+    //获取当前 td 所处的位置.先将 tds 转换为数组，再用 indexOf 方法获取当前 td 的位置
+    let tdIndex = Array.from(tds).indexOf(currentTd);
+    //获取当前 tr 所处的位置
+    let trIndex = Array.from(trs).indexOf(currentTr);
+    return {"tdIndex":tdIndex,"trIndex":trIndex}
+}
 
+//表格宽度调整
+
+
+
+
+export default function Table(props) {
+    const controlData = props.controlData
     //获取行、列数
-    const {cols,rows} = props.controlData.tableAmount;
+    const {cols,rows} = controlData.tableAmount;
 
     //获取数据源、参数
-    const api = props.controlData.dataFrom.api;
-    const apiParameter = props.controlData.dataFrom.parameter;
+    const api = controlData.dataFrom.api;
+    const apiParameter = controlData.dataFrom.parameter;
+    const getControlData = props.getControlData;
+    const getCellSize = props.getCellSize;
 
     //用来控制右键菜单是否可见的状态
-    const [visable, setVisable] = useState("none")
+    const [visable, setVisable] = useState("none");
+    //用来控制表格宽度是否可以拖动，默认不可拖动
     
     //获取当前右键点击的 td 或 tr 位置
     const [tdIndex, setTdIndex] = useState(null)
     const [trIndex, setTrIndex] = useState(null)
 
-    const rightPanel = useRef(null)
-    const tbody = useRef(null)
+    const rightPanel = useRef(null);
+    const table = useRef(null)
 
-    const getRenderData = props.getRenderData
+    const getRenderData = props.getRenderData;
+    const getRenderHead = props.getRenderHead;
 
     //初始表头数据及格式
     const originHead = [
@@ -77,6 +104,13 @@ export default function Table(props) {
     //渲染数据
     const [renderHead, setRenderHead] = useState([]);
     const [renderData, setRenderData] = useState([]);
+
+    // const tableRows = table.current.rows;
+    const tableWidth = controlData.tableWidth
+    const {top,right,bottom,left} = controlData.padding
+    const reservedWidth = (left*1 + right*1) + "px";
+
+    
 
     React.useEffect(() => {
         //将表头数据整合为对象，并加入 key
@@ -106,10 +140,27 @@ export default function Table(props) {
             );
         });
     },[api,apiParameter])
-    
-    // cols, row, dynamicHead, dynamicData 更新驱动着页面的更新
+
     React.useEffect(()=>{
-        
+
+        let tableRows = Array.from(table.current.rows);
+        let tableCols = Array.from(table.current.rows[0].cells);
+        let newstWidthArr = [];
+        let newstHeightArr = [];
+        let cellSize = {};
+
+        for(let i=0;i<tableRows.length;i++){
+            newstHeightArr.push(tableRows[i].offsetHeight)
+        }
+
+        for(let i=0;i<tableCols.length;i++){
+            newstWidthArr.push(tableCols[i].offsetWidth)
+        }
+    
+        cellSize.width = newstWidthArr;
+        cellSize.height = newstHeightArr
+
+
         let longestData = dynamicData.slice();
         let longestHead = dynamicHead.slice();
 
@@ -146,36 +197,54 @@ export default function Table(props) {
         setRenderHead(readyRenderHead)
         setRenderData(mergedData)
         getRenderData(mergedData)
-
-    },[cols,rows,dynamicHead,dynamicData,getRenderData])
-
-
-
-
-
-    //获取当前事件的位置
-    function eventPosition(e) {
-        //获取点击的td
-        let currentTd = e.target.tagName === "TD" ? e.target : e.target.parentNode;
-        //获取点击的tr
-        let currentTr = e.target.tagName === "TD" ? e.target.parentNode : e.target.parentNode.parentNode;
-        //获取所有的tds
-        let tds = currentTr.childNodes
-        //获取所有的trs
-        let trs = currentTr.parentNode.childNodes
-        //获取当前 td 所处的位置.先将 tds 转换为数组，再用 indexOf 方法获取当前 td 的位置
-        let tdIndex = Array.from(tds).indexOf(currentTd);
-        //获取当前 tr 所处的位置
-        let trIndex = Array.from(trs).indexOf(currentTr);
-        return {"tdIndex":tdIndex,"trIndex":trIndex}
-    }
+        getRenderHead(readyRenderHead)
+        getCellSize(cellSize)
+        
+    },[cols,rows,dynamicHead,dynamicData,getRenderData,getRenderHead,getCellSize,controlData])
+    
 
     //table 输入
-    function changeCustomTableValue(e){
+    function changeTbodyValue(e){
         const {trIndex,tdIndex} = eventPosition(e);
         let insert = renderData.slice();
         insert[trIndex][renderHead[tdIndex]["title"]] = e.target.value;
         setDynamicData(insert);
+    }
+
+    const [lastHead, setLastHead] = useState("");
+
+    function gitInitialHead(e){
+        console.log("focus")
+        setLastHead(e.target.value);
+    }
+
+    function changeTheadValue(e){
+        const {tdIndex} = eventPosition(e);
+
+        //获取最新输入的值。
+        let newTitle = e.target.value
+        let insertData = renderData.slice();
+        let insertHead = renderHead.slice();
+
+        //表头内容不能为空, 且当前输入项不能等于表头中的其他项。
+        //find(), 查找数组中的某个复合条件的元素是否存在。如果存在返回第一个找到的值，如果不存在，返回 undefined
+        const equal = insertHead.find(element => element.title === newTitle) === undefined;
+
+        if(newTitle !== "" && equal){
+            //表格数据要以表头数据为参考，这里修改了表头的值，表格数据就不能正常展示了。
+            insertHead[tdIndex]["title"] = e.target.value;
+
+            //循环renderData 中的所有项。为 newTitle 赋值
+            for(let i=0;i<insertData.length;i++){
+                insertData[i][newTitle] = insertData[i][lastHead];
+                delete insertData[i][lastHead];
+            }
+
+            setLastHead(newTitle);
+
+            setDynamicData(insertData);
+            setDynamicHead(insertHead);
+        }
     }
     
     //自定义右键菜单
@@ -190,8 +259,8 @@ export default function Table(props) {
         const clickY = e.clientY
         //为 右键菜单 标记了 refs 标签 (rightPanel)。这里引用并设置右键菜单的位置
         //（已经设置 ul 的 position 为 absolute ）。current 是必须要引用的
-        rightPanel.current.style.left = clickX + 2 + "px"
-        rightPanel.current.style.top = clickY + 2 + "px"
+        rightPanel.current.style.left = clickX + "px"
+        rightPanel.current.style.top = clickY + "px"
         const {trIndex,tdIndex} = eventPosition(e);
         //更新当前事件的位置
         setTdIndex(tdIndex)
@@ -201,8 +270,8 @@ export default function Table(props) {
     }
 
     function getValue(name,value){
-        let tableAmount = props.controlData.tableAmount
-        props.getDetails("tableAmount",{...tableAmount,[name]:value})
+        let tableAmount = controlData.tableAmount
+        getControlData("tableAmount",{...tableAmount,[name]:value})
     }
 
     //隐藏右键
@@ -256,7 +325,107 @@ export default function Table(props) {
         }
     }
 
-    const {top,right,bottom,left} = props.controlData.padding
+    const [dragableTable, setDragableTable] = useState({
+        scaleTheadArr:[],
+        widthArr:[],
+        currentWidth:"",
+        status:false,
+        ox:"",
+        index:""
+    });
+    
+    //给一个初始的单元格宽度
+    const defaultCellWidth = Math.floor(tableWidth / renderHead.length);
+
+    function onMouseDown(event){
+        if(event.target.tagName === "TH"){
+
+            let mouseDownCurrent = event.target;
+            let mouseDowntheadItems = mouseDownCurrent.parentNode.cells;
+            let mouseDowntheadArr = Array.from(mouseDowntheadItems);
+            let mouseDownCurrentIndex = mouseDowntheadArr.indexOf(mouseDownCurrent)
+    
+            if(mouseDownCurrentIndex !== mouseDowntheadArr.length-1 && event.nativeEvent.offsetX > mouseDownCurrent.offsetWidth - 8){
+    
+                mouseDownCurrent.style.cursor = "col-resize";
+    
+                let oldCellWidthArr = [];
+    
+                for(let i=0;i<mouseDowntheadArr.length;i++){
+                    oldCellWidthArr.push(mouseDowntheadArr[i].offsetWidth)
+                }
+                
+                setDragableTable({
+                    scaleTheadArr:mouseDowntheadArr,
+                    widthArr:oldCellWidthArr,
+                    currentWidth:mouseDownCurrent.offsetWidth,
+                    status:true,
+                    ox:event.clientX,
+                    index:mouseDownCurrentIndex,
+                });
+            }
+        }
+    }
+    
+    function onMouseMove(event){
+        let current, tHeadItems, tHeadArr, currentIndex
+        if(event.target.tagName === "TH"){
+            current = event.target
+            tHeadItems = current.parentNode.cells;
+            tHeadArr = Array.from(tHeadItems)
+            currentIndex = tHeadArr.indexOf(current);
+            
+            if(currentIndex !== tHeadArr.length-1 && event.nativeEvent.offsetX > current.offsetWidth - 8){
+                current.style.cursor = "col-resize";
+            }else{
+                current.style.cursor = "default";
+            }            
+        }
+        if(dragableTable.status === true){
+    
+            //x的该变量等于当前鼠标的 offsetX 减去 mouseDown 时初次获取的鼠标位置
+            const deltaX = event.clientX - dragableTable.ox;
+
+           //有多少个需要改变宽度的单元格
+           const deltaCount = dragableTable.scaleTheadArr.length - 1 - dragableTable.index;
+
+           //基础增量
+           const cellDeltaX = (deltaX - deltaX % deltaCount)/deltaCount;
+           
+           setTimeout(()=>{
+                for(let i=0;i<dragableTable.scaleTheadArr.length;i++){
+                    if(i < dragableTable.index){
+                        dragableTable.scaleTheadArr[i].style.width = dragableTable.widthArr[i] + "px"
+                    }else if(i === dragableTable.index){
+                        dragableTable.scaleTheadArr[i].style.width = dragableTable.currentWidth + deltaX + "px";
+                    }else if(i === currentIndex + 1){
+                        dragableTable.scaleTheadArr[i].style.width = dragableTable.widthArr[i] - cellDeltaX - deltaX % deltaCount + "px"
+                    }else{
+                        dragableTable.scaleTheadArr[i].style.width = dragableTable.widthArr[i] - cellDeltaX + "px"
+                    }
+                }
+           },0)
+        }
+    }
+    
+    function onMouseUp(event){
+        
+        setDragableTable({...dragableTable,status:false});
+        event.target.style.cursor = "default";
+        let newstWidthArr = [];
+        let newstHeightArr = [];
+        let cellSize = {};
+    
+        for(let i=0;i<dragableTable.scaleTheadArr.length;i++){
+            newstWidthArr.push(dragableTable.scaleTheadArr[i].offsetWidth)
+            newstHeightArr.push(dragableTable.scaleTheadArr[i].offsetHeight*1 + 2)
+        }
+        cellSize.width = newstWidthArr;
+        cellSize.height = newstHeightArr
+
+        getControlData("cellSize",cellSize);
+    }
+    
 
     return (
         <div className={style.tableContainer}>
@@ -265,7 +434,6 @@ export default function Table(props) {
                 <TableEdit 
                     display={visable}
                     addRowOnTop={changeRow("front")} 
-                    // addRowOnTop={change("front",renderData,trIndex,setDynamicData)} 
                     addRowOnBottom={changeRow("after")}
                     addColLeft={changeCol("front")}
                     addColRight={changeCol("after")}
@@ -274,15 +442,46 @@ export default function Table(props) {
                 />
             </div>
 
-            <table frame="void">
+            <table
+                ref = {table}
+                onMouseDown = {onMouseDown}
+                onMouseMove = {onMouseMove}
+                onMouseUp={onMouseUp}
+                style={{
+                    width:tableWidth*1 + 1 + "px"
+                }}>
                 <thead>
                     <tr>
-                        {renderHead.map((cell) => {
-                            return <th key={cell["key"]}>{cell["title"]}</th>
+                        {renderHead.map((cell,index) => {
+                            return <th 
+                                key={cell["key"]}
+                                style={{
+                                    width:index !== renderHead.length - 1 ? defaultCellWidth : "",
+                                    backgroundColor:controlData.theadFill.basicColor,
+                                    borderColor:controlData.border.basicColor,
+                                }}
+                            >
+                            <input 
+                                type="text" 
+                                value={cell["title"]} 
+                                onFocus={gitInitialHead}
+                                onChange={changeTheadValue}
+                                style={{
+                                    width:`calc(100% - ${reservedWidth})`,
+                                    color:controlData.theadTextStyle.basicColor,
+                                    fontSize:controlData.theadTextStyle.fontSize+"px",
+                                    marginTop:top+"px",
+                                    marginRight:right+"px",
+                                    marginBottom:bottom+"px",
+                                    marginLeft:left+"px",
+                                    padding:0
+                                }}
+                            />
+                            </th>
                         })}
                     </tr>
                 </thead>
-                <tbody ref={tbody}>
+                <tbody>
                     {renderData.map((perObject) => {
                         return (
                             <tr key={perObject["key"]}>
@@ -290,22 +489,24 @@ export default function Table(props) {
                                     return (
                                         <td
                                             style={{
-                                                backgroundColor:props.controlData.fill.basicColor,
-                                                borderColor:props.controlData.border.basicColor
+                                                backgroundColor:controlData.fill.basicColor,
+                                                borderColor:controlData.border.basicColor,
                                             }}
                                             onContextMenu={forRight}
                                             key={perObject["key"]+cell["key"]}
                                         >
                                             <input type="text" 
                                                 value={perObject[cell["title"]]} 
-                                                onChange={changeCustomTableValue}
+                                                onChange={changeTbodyValue}
                                                 style={{
-                                                    color:props.controlData.textStyle.basicColor,
-                                                    fontSize:props.controlData.textStyle.fontSize+"px",
-                                                    paddingTop:top+"px",
-                                                    paddingRight:right+"px",
-                                                    paddingBottom:bottom+"px",
-                                                    paddingLeft:left+"px"
+                                                    width:`calc(100% - ${reservedWidth})`,
+                                                    color:controlData.textStyle.basicColor,
+                                                    fontSize:controlData.textStyle.fontSize+"px",
+                                                    marginTop:top+"px",
+                                                    marginRight:right+"px",
+                                                    marginBottom:bottom+"px",
+                                                    marginLeft:left+"px",
+                                                    padding:0
                                                 }}
                                             />
                                         </td>

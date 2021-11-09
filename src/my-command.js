@@ -43,19 +43,34 @@ export default function () {
     return a+b;
   }
 
+  function getMaxValue(arr){
+    let maxValue = "";
+    if(isNaN(Math.max(arr))){
+      maxValue = arr[0]
+    }else{
+      maxValue = Math.max(arr)
+    }
+    return maxValue
+  }
+
   
 
   browserWindow.loadURL(require('../resources/webview.html'))
-  browserWindow.webContents.on('insert', function(renderData,controlData){
-    
-    let rowGroupArr = [];
+  browserWindow.webContents.on('insert', function(renderHead,renderData,controlData){
+    const paddingBottom = controlData.padding.bottom;
+    const paddingLeft = controlData.padding.left;
+    const paddingRight = controlData.padding.right;
+    const paddingTop = controlData.padding.top;
 
-    console.log(selectedLayers[0]);
-    let heightStorage = {};
+    console.log(renderHead,renderData,controlData)
+
+    let rowGroupArr = [];
+    let rowsHeight = [0];
 
     renderData.map((row,rowIndex)=>{
-      let widthArr = [0]
+      let colWidthArr = [0]
       let cellGroupArr = [];
+      let cellHeightArr = [];
       const rowArr = Object.keys(row);
 
       rowArr.map((cell,cellIndex)=>{
@@ -64,33 +79,45 @@ export default function () {
 
           //定义表格内容
           const cellText = new Text({
-            type:Text,
+            
             text:row[cell],
             name:"cellText",
+            style:{
+              textColor:controlData.textStyle.basicColor,
+              fontSize: controlData.textStyle.fontSize,
+              borders:[],
+            }
+
+
           });
-          cellText.frame.x = 8;
-          cellText.frame.y = 8;
+          cellText.frame.x = paddingLeft;
+          cellText.frame.y = paddingTop;
 
           //定义表格背景
           const cellBg = new ShapePath({
-            type: ShapePath,
             shapeType: ShapePath.ShapeType.Rectangle,
             name:"cellBg",
             frame:{
               x:0,
               y:0,
-              width:cellText.frame.width + 16,
-              height:cellText.frame.height + 16,
+              width:controlData.cellSize.width[cellIndex],
+              height:cellText.frame.height*1 + paddingBottom*1 + paddingTop*1,
             },
             style:{
                   fills:[
                     {
                       fillType:Color,
                       enabled:true,
-                      color:"white",
+                      color:controlData.fill.basicColor,
                     }
                   ],
-                  borders:[],
+                  borders:[{
+                    thickness:1,
+                    fillType: Style.FillType.Color,
+                    enabled: true,
+                    position: Style.BorderPosition.Center,
+                    color:controlData.border.basicColor,
+                  }],
                   styleType: Layer,
             },
           })
@@ -100,7 +127,7 @@ export default function () {
             name: 'cell',
             frame:{
               //x 位置为前一个编组的宽度
-              x:widthArr.reduce(addReducer),
+              x:colWidthArr.reduce(addReducer),
               y:0,
               //宽高为表格背景的宽度
               width:cellBg.frame.width,
@@ -111,10 +138,11 @@ export default function () {
 
           //将单元格编组放入一个数组中，供下方的行编组使用。
           cellGroupArr.push(cellGroup);
-          Object.assign(heightStorage, {"height":cellGroup.frame.height});
-          widthArr.push(cellGroup.frame.width)
+          colWidthArr.push(cellGroup.frame.width);
+          cellHeightArr.push(cellGroup.frame.height)
+
         }
-      })      
+      })
 
       //将上面的单元格编组放入到 行内容编组中
       let rowGroup = new Group({
@@ -123,14 +151,15 @@ export default function () {
         //这里一定要注意 frame 和 layers 的顺序。如果 layers 在前，那么后面设置的 frame 将对先生成的内容进行拉伸。
         frame:{
           x:0,
-          y:heightStorage.height*rowIndex,
-          width:widthArr.reduce(addReducer),
-          height:heightStorage.height
+          y:rowsHeight.reduce(addReducer),
+          width:colWidthArr.reduce(addReducer),
+          // height:Math.max(cellHeightArr),
+          height:getMaxValue(cellHeightArr)
         },
         layers:cellGroupArr,
       });
-
-      rowGroupArr.push(rowGroup)
+      rowGroupArr.push(rowGroup);
+      rowsHeight.push(rowGroup.frame.height)
 
     })
 
@@ -141,8 +170,9 @@ export default function () {
       frame:{
         x:24,
         y:24,
-        width:400,
-        height:165
+        width:rowGroupArr[0].frame.width,
+        height:rowsHeight.reduce(addReducer),
+        // height:300,
       },
       layers:rowGroupArr
     })

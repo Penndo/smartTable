@@ -4,7 +4,7 @@ import TextInput from "../../Public/TextInput";
 class FormInputV extends React.Component {
 
     getValue = (name,value) => {
-        this.props.getDetails(name,value)
+        this.props.getControlData(name,value)
     }
 
     render(){

@@ -1,6 +1,6 @@
 .radio{
     position: relative;
-    height: 32px;
+    height: 28px;
     background-color:white;
     display: flex;
     border: 1px solid #E8E8E8;
@@ -25,35 +25,30 @@
         z-index: 5;
         width: 72px;
         text-align: center;
-        font-size: 14px;
+        font-size: 12px;
     }
     
     .selectedBg {
         position: absolute;
-        width: 88px;
+        width: 130px;
         height: 24px;
-        background: #5F23FF;
+        background: #464a53;
         border-radius: 6px;
     }
     
-    .big:checked + label, .normal:checked + label, .small:checked + label {
+    .big:checked + label, .normal:checked + label{
         color: white;
-        transition: 0.2s ease-in;
+        transition: 0.1s ease-in;
     }
     
     .big:checked ~ .selectedBg {
-        transform: translateX(-88px);
-        transition: 0.2s ease-in;
+        transform: translateX(-69px);
+        transition: 0.1s ease-in;
     }
 
     .normal:checked ~ .selectedBg {
-        transform: translateX(0);
-        transition: 0.2s ease-in;
-    }
-
-    .small:checked ~ .selectedBg {
-        transform: translateX(88px);
-        transition: 0.2s ease-in;
+        transform: translateX(69px);
+        transition: 0.1s ease-in;
     }
   }
 
