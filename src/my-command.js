@@ -1,6 +1,6 @@
 import sketch from 'sketch';
 import BrowserWindow from 'sketch-module-web-view';
-import {Rectangle,ShapePath,Style,Color,Group,Text,Layer} from 'sketch/dom';
+import { Rectangle, ShapePath, Style, Color, Group, Text, Layer } from 'sketch/dom';
 import { getWebview } from 'sketch-module-web-view/remote';
 import UI from 'sketch/ui';
 
@@ -39,109 +39,192 @@ export default function () {
       .catch(console.error)
   })
 
-  function addReducer(a,b){
-    return a+b;
+  function addReducer(a, b) {
+    return a + b;
   }
 
-  function getMaxValue(arr){
+  function getMaxValue(arr) {
     let maxValue = "";
-    if(isNaN(Math.max(arr))){
+    if (isNaN(Math.max(arr))) {
       maxValue = arr[0]
-    }else{
+    } else {
       maxValue = Math.max(arr)
     }
     return maxValue
   }
 
-  
+
 
   browserWindow.loadURL(require('../resources/webview.html'))
-  browserWindow.webContents.on('insert', function(renderHead,renderData,controlData){
+  browserWindow.webContents.on('insert', function (renderHead, renderData, controlData) {
     const paddingBottom = controlData.padding.bottom;
     const paddingLeft = controlData.padding.left;
-    const paddingRight = controlData.padding.right;
     const paddingTop = controlData.padding.top;
 
-    console.log(renderHead,renderData,controlData)
+    console.log(renderHead, renderData, controlData)
 
-    let rowGroupArr = [];
-    let rowsHeight = [0];
+    let titleArr = []
+    for (let o of renderHead) {
+      titleArr.push(o.title)
+    }
 
-    renderData.map((row,rowIndex)=>{
-      let colWidthArr = [0]
+    console.log(titleArr)
+
+    let tbodyRowsGroup = [];
+    let tbodyRowsHeight = [0];
+
+    let cellWidthArr = [0]
+    let cellGroupArr = [];
+    let cellHeightArr = [];
+
+    titleArr.map((cell, cellIndex) => {
+      console.log(cell)
+      //定义表格内容
+      const cellText = new Text({
+        text: cell.toString(),
+        name: cell.toString(),
+        style: {
+          textColor: controlData.theadTextStyle.basicColor,
+          fontSize: controlData.theadTextStyle.fontSize,
+          borders: [],
+        }
+      });
+      cellText.frame.x = paddingLeft;
+      cellText.frame.y = paddingTop;
+
+      //定义表格背景
+      const cellBg = new ShapePath({
+        shapeType: ShapePath.ShapeType.Rectangle,
+        name: "cellBg",
+        frame: {
+          x: 0,
+          y: 0,
+          width: controlData.cellSize.width[cellIndex],
+          height: cellText.frame.height * 1 + paddingBottom * 1 + paddingTop * 1,
+        },
+        style: {
+          fills: [
+            {
+              fillType: Color,
+              enabled: true,
+              color: controlData.theadFill.basicColor,
+            }
+          ],
+          borders: [{
+            thickness: 1,
+            fillType: Style.FillType.Color,
+            enabled: true,
+            position: Style.BorderPosition.Center,
+            color: controlData.border.basicColor,
+          }],
+          styleType: Layer,
+        },
+      })
+
+      //将表格内容与表格背景编组并整合为一行
+      let cellGroup = new Group({
+        name: 'cell',
+        frame: {
+          //x 位置为前一个编组的宽度
+          x: cellWidthArr.reduce(addReducer),
+          y: 0,
+          //宽高为表格背景的宽度
+          width: cellBg.frame.width,
+          height: cellBg.frame.height
+        },
+        layers: [cellBg, cellText],
+      });
+
+      //将单元格编组放入一个数组中，供下方的行编组使用。
+      cellGroupArr.push(cellGroup);
+      cellWidthArr.push(cellGroup.frame.width);
+      cellHeightArr.push(cellGroup.frame.height)
+
+    })
+
+    //将上面的单元格编组放入到 行内容编组中
+    let rowGroup = new Group({
+      name: 'row',
+      // parent:selectedLayers[0],
+      //这里一定要注意 frame 和 layers 的顺序。如果 layers 在前，那么后面设置的 frame 将对先生成的内容进行拉伸。
+      frame: {
+        x: 0,
+        y: 0,
+        width: cellWidthArr.reduce(addReducer),
+        // height:Math.max(cellHeightArr),
+        height: getMaxValue(cellHeightArr)
+      },
+      layers: cellGroupArr,
+    });
+
+    renderData.map((row) => {
+      let cellWidthArr = [0]
       let cellGroupArr = [];
       let cellHeightArr = [];
-      const rowArr = Object.keys(row);
 
-      rowArr.map((cell,cellIndex)=>{
+      titleArr.map((cell, cellIndex) => {
+        //定义表格内容
+        const cellText = new Text({
+          //表格数据是否为空
+          text: row[cell].toString() === "" ? " " : row[cell].toString(),
+          name: row[cell].toString() === "" ? "text" : row[cell].toString(),
+          style: {
+            textColor: controlData.textStyle.basicColor,
+            fontSize: controlData.textStyle.fontSize,
+            borders: [],
+          }
+        });
+        cellText.frame.x = paddingLeft;
+        cellText.frame.y = paddingTop;
 
-        if(cell !== "key"){
+        //定义表格背景
+        const cellBg = new ShapePath({
+          shapeType: ShapePath.ShapeType.Rectangle,
+          name: "cellBg",
+          frame: {
+            x: 0,
+            y: 0,
+            width: controlData.cellSize.width[cellIndex],
+            height: cellText.frame.height * 1 + paddingBottom * 1 + paddingTop * 1,
+          },
+          style: {
+            fills: [
+              {
+                fillType: Color,
+                enabled: true,
+                color: controlData.fill.basicColor,
+              }
+            ],
+            borders: [{
+              thickness: 1,
+              fillType: Style.FillType.Color,
+              enabled: true,
+              position: Style.BorderPosition.Center,
+              color: controlData.border.basicColor,
+            }],
+            styleType: Layer,
+          },
+        })
 
-          //定义表格内容
-          const cellText = new Text({
-            
-            text:row[cell],
-            name:"cellText",
-            style:{
-              textColor:controlData.textStyle.basicColor,
-              fontSize: controlData.textStyle.fontSize,
-              borders:[],
-            }
+        //将表格内容与表格背景编组并整合为一行
+        let cellGroup = new Group({
+          name: 'cell',
+          frame: {
+            //x 位置为前一个编组的宽度
+            x: cellWidthArr.reduce(addReducer),
+            y: 0,
+            //宽高为表格背景的宽度
+            width: cellBg.frame.width,
+            height: cellBg.frame.height
+          },
+          layers: [cellBg, cellText],
+        });
 
+        //将单元格编组放入一个数组中，供下方的行编组使用。
+        cellGroupArr.push(cellGroup);
+        cellWidthArr.push(cellGroup.frame.width);
+        cellHeightArr.push(cellGroup.frame.height)
 
-          });
-          cellText.frame.x = paddingLeft;
-          cellText.frame.y = paddingTop;
-
-          //定义表格背景
-          const cellBg = new ShapePath({
-            shapeType: ShapePath.ShapeType.Rectangle,
-            name:"cellBg",
-            frame:{
-              x:0,
-              y:0,
-              width:controlData.cellSize.width[cellIndex],
-              height:cellText.frame.height*1 + paddingBottom*1 + paddingTop*1,
-            },
-            style:{
-                  fills:[
-                    {
-                      fillType:Color,
-                      enabled:true,
-                      color:controlData.fill.basicColor,
-                    }
-                  ],
-                  borders:[{
-                    thickness:1,
-                    fillType: Style.FillType.Color,
-                    enabled: true,
-                    position: Style.BorderPosition.Center,
-                    color:controlData.border.basicColor,
-                  }],
-                  styleType: Layer,
-            },
-          })
-
-          //将表格内容与表格背景编组并整合为一行
-          let cellGroup = new Group({
-            name: 'cell',
-            frame:{
-              //x 位置为前一个编组的宽度
-              x:colWidthArr.reduce(addReducer),
-              y:0,
-              //宽高为表格背景的宽度
-              width:cellBg.frame.width,
-              height:cellBg.frame.height
-            },
-            layers: [cellBg,cellText],
-          });
-
-          //将单元格编组放入一个数组中，供下方的行编组使用。
-          cellGroupArr.push(cellGroup);
-          colWidthArr.push(cellGroup.frame.width);
-          cellHeightArr.push(cellGroup.frame.height)
-
-        }
       })
 
       //将上面的单元格编组放入到 行内容编组中
@@ -149,32 +232,54 @@ export default function () {
         name: 'row',
         // parent:selectedLayers[0],
         //这里一定要注意 frame 和 layers 的顺序。如果 layers 在前，那么后面设置的 frame 将对先生成的内容进行拉伸。
-        frame:{
-          x:0,
-          y:rowsHeight.reduce(addReducer),
-          width:colWidthArr.reduce(addReducer),
+        frame: {
+          x: 0,
+          y: tbodyRowsHeight.reduce(addReducer),
+          width: cellWidthArr.reduce(addReducer),
           // height:Math.max(cellHeightArr),
-          height:getMaxValue(cellHeightArr)
+          height: getMaxValue(cellHeightArr)
         },
-        layers:cellGroupArr,
+        layers: cellGroupArr,
       });
-      rowGroupArr.push(rowGroup);
-      rowsHeight.push(rowGroup.frame.height)
+      tbodyRowsGroup.push(rowGroup);
+      tbodyRowsHeight.push(rowGroup.frame.height)
 
     })
 
-    //最后将行内容编组放入最终的table中
-    new Group({
-      name:'smartTable',
-      parent:selectedLayers[0],
-      frame:{
-        x:24,
-        y:24,
-        width:rowGroupArr[0].frame.width,
-        height:rowsHeight.reduce(addReducer),
-        // height:300,
+    let thead = new Group({
+      name: 'thead',
+      frame: {
+        x: 0,
+        y: 0,
+        width: rowGroup.frame.width,
+        height: rowGroup.frame.height,
       },
-      layers:rowGroupArr
+      layers: [rowGroup]
+    })
+
+    //最后将行内容编组放入最终的table中
+    let tbody = new Group({
+      name: 'tbody',
+      frame: {
+        x: 0,
+        y: thead.frame.height,
+        width: tbodyRowsGroup[0].frame.width,
+        height: tbodyRowsHeight.reduce(addReducer),
+      },
+      layers: tbodyRowsGroup
+    })
+
+
+    new Group({
+      name: 'smartTable',
+      parent: selectedLayers[0],
+      frame: {
+        x: 24,
+        y: 24,
+        width: thead.frame.width,
+        height: thead.frame.height*1 + tbody.frame.height*1,
+      },
+      layers: [tbody,thead]
     })
 
   })
