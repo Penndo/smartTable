@@ -92,6 +92,50 @@ export default function () {
       cellText.frame.x = paddingLeft;
       cellText.frame.y = paddingTop;
 
+      const borderBottom = new ShapePath({
+        shapeType: ShapePath.ShapeType.Rectangle,
+        name: "borderBottom",
+        frame: {
+          x: 0,
+          y: cellText.frame.height * 1 + paddingBottom * 1 + paddingTop * 1 - 1,
+          width: controlData.cellSize.width[cellIndex],
+          height: 1,
+        },
+        style: {
+          fills: [
+            {
+              fillType: Color,
+              enabled: true,
+              color: controlData.border.basicColor,
+            }
+          ],
+          borders: [],
+          styleType: Layer,
+        },
+      })
+
+      const borderRight = new ShapePath({
+        shapeType: ShapePath.ShapeType.Rectangle,
+        name: "borderRight",
+        frame: {
+          x: controlData.cellSize.width[cellIndex]*1 - 1,
+          y: 0,
+          width: 1,
+          height: cellText.frame.height * 1 + paddingBottom * 1 + paddingTop * 1,
+        },
+        style: {
+          fills: [
+            {
+              fillType: Color,
+              enabled: true,
+              color: controlData.border.basicColor,
+            }
+          ],
+          borders: [],
+          styleType: Layer,
+        },
+      })
+
       //定义表格背景
       const cellBg = new ShapePath({
         shapeType: ShapePath.ShapeType.Rectangle,
@@ -110,16 +154,22 @@ export default function () {
               color: controlData.theadFill.basicColor,
             }
           ],
-          borders: [{
-            thickness: 1,
-            fillType: Style.FillType.Color,
-            enabled: true,
-            position: Style.BorderPosition.Center,
-            color: controlData.border.basicColor,
-          }],
+          borders: [],
           styleType: Layer,
         },
       })
+
+      let cellGroupLayers = [];
+
+      if(cellIndex === titleArr.length - 1){
+        cellGroupLayers = [cellBg,cellText,borderBottom]
+      }else{
+        if(controlData.border.intervalColor === ""){
+          cellGroupLayers = [cellBg,cellText,borderBottom]
+        }else{
+          cellGroupLayers = [cellBg,cellText,borderBottom,borderRight]
+        }
+      }
 
       //将表格内容与表格背景编组并整合为一行
       let cellGroup = new Group({
@@ -132,7 +182,7 @@ export default function () {
           width: cellBg.frame.width,
           height: cellBg.frame.height
         },
-        layers: [cellBg, cellText],
+        layers: cellGroupLayers,
       });
 
       //将单元格编组放入一个数组中，供下方的行编组使用。
@@ -157,7 +207,7 @@ export default function () {
       layers: cellGroupArr,
     });
 
-    renderData.map((row) => {
+    renderData.map((row,rowIndex) => {
       let cellWidthArr = [0]
       let cellGroupArr = [];
       let cellHeightArr = [];
@@ -177,6 +227,50 @@ export default function () {
         cellText.frame.x = paddingLeft;
         cellText.frame.y = paddingTop;
 
+        const borderBottom = new ShapePath({
+          shapeType: ShapePath.ShapeType.Rectangle,
+          name: "borderBottom",
+          frame: {
+            x: 0,
+            y: cellText.frame.height * 1 + paddingBottom * 1 + paddingTop * 1 - 1,
+            width: controlData.cellSize.width[cellIndex],
+            height: 1,
+          },
+          style: {
+            fills: [
+              {
+                fillType: Color,
+                enabled: true,
+                color: controlData.border.basicColor,
+              }
+            ],
+            borders: [],
+            styleType: Layer,
+          },
+        })
+
+        const borderRight = new ShapePath({
+          shapeType: ShapePath.ShapeType.Rectangle,
+          name: "borderRight",
+          frame: {
+            x: controlData.cellSize.width[cellIndex]*1 - 1,
+            y: 0,
+            width: 1,
+            height: cellText.frame.height * 1 + paddingBottom * 1 + paddingTop * 1,
+          },
+          style: {
+            fills: [
+              {
+                fillType: Color,
+                enabled: true,
+                color: controlData.border.basicColor,
+              }
+            ],
+            borders: [],
+            styleType: Layer,
+          },
+        })
+
         //定义表格背景
         const cellBg = new ShapePath({
           shapeType: ShapePath.ShapeType.Rectangle,
@@ -192,19 +286,37 @@ export default function () {
               {
                 fillType: Color,
                 enabled: true,
-                color: controlData.fill.basicColor,
+                color: controlData.fill.intervalColor !== "" && rowIndex%2 === 1 ? controlData.fill.intervalColor : controlData.fill.basicColor,
               }
             ],
-            borders: [{
-              thickness: 1,
-              fillType: Style.FillType.Color,
-              enabled: true,
-              position: Style.BorderPosition.Center,
-              color: controlData.border.basicColor,
-            }],
+            borders: [],
             styleType: Layer,
           },
         })
+
+        let cellGroupLayers = [];
+
+        if(rowIndex === renderData.length - 1 && cellIndex === titleArr.length - 1){
+          cellGroupLayers = [cellBg,cellText]
+        }else{
+          if(cellIndex === titleArr.length - 1){
+            cellGroupLayers = [cellBg,cellText,borderBottom]
+          }else{
+            if(controlData.border.intervalColor === ""){
+              if(rowIndex === renderData.length - 1){
+                cellGroupLayers = [cellBg,cellText]
+              }else{
+                cellGroupLayers = [cellBg,cellText,borderBottom]
+              }
+            }else{
+              if(rowIndex === renderData.length - 1){
+                cellGroupLayers = [cellBg,cellText,borderRight]
+              }else{
+                cellGroupLayers = [cellBg,cellText,borderBottom,borderRight]
+              }
+            }
+          }
+        }
 
         //将表格内容与表格背景编组并整合为一行
         let cellGroup = new Group({
@@ -217,7 +329,7 @@ export default function () {
             width: cellBg.frame.width,
             height: cellBg.frame.height
           },
-          layers: [cellBg, cellText],
+          layers: cellGroupLayers,
         });
 
         //将单元格编组放入一个数组中，供下方的行编组使用。
