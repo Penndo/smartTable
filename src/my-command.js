@@ -61,7 +61,7 @@ export default function () {
     const paddingLeft = controlData.padding.left;
     const paddingTop = controlData.padding.top;
 
-    console.log(renderHead, renderData, controlData)
+    console.log("执行了吗")
 
     let titleArr = []
     for (let o of renderHead) {

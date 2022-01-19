@@ -52,4 +52,18 @@ module.exports = function (config, entry) {
       }
     }
   })
+  config.module.rules.push(
+    {
+      test: /\.(jpe?g|png|gif|svg)$/i, 
+      loader: "file-loader?name=/public/icons/[name].[ext]"
+    },
+    // For newer versions of Webpack it should be
+    {
+        test: /\.(jpe?g|png|gif|svg)$/i, 
+        loader: 'file-loader',
+        options: {
+          name: '/public/icons/[name].[ext]'
+        }
+    }
+  )
 }
