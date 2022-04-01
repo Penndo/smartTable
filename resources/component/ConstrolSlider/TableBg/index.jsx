@@ -1,20 +1,32 @@
 import * as React from "react";
 import ColorPicker from "../../Public/ColorPicker";
-// import ToggleSwitch from "../../Public/ToggleSwitch";
 import ColorSwitch from "../../Public/ColorSwitch";
 import styles from "./index.module.less";
 
-//示例：https://www.w3schools.com/howto/howto_css_switch.asp
 
 class TableBg extends React.Component {
 
     state = {
-        data:this.props.data,
-        isDisplay:"none",
         //switch默认为关闭状态
-        switchState:false,
-        //historyColor 用来存放当前组件中 colorpicker 的最后一次取值。
-        historyColor:this.props.defaultColor
+        switchState:this.props.data.switchState,
+        //lastPickedColor 用来存放当前组件中 colorpicker 的最后一次取值。因为组件共用，需要判断是否有 intervalColor。才能用来赋值。
+        lastPickedColor:this.props.data.intervalColor !== "" && this.props.data.intervalColor !== undefined ? this.props.data.intervalColor : this.props.data.basicColor
+    }
+
+    componentDidUpdate(prevProps){
+
+        const {data} = this.props
+
+        if(data.intervalColor !== "" && data.intervalColor !== undefined){
+            if(data.intervalColor !== prevProps.data.intervalColor){
+                this.setState({lastPickedColor:data.intervalColor})
+            }
+        }
+        
+        if(data.switchState !== prevProps.data.switchState){
+            this.setState({switchState:data.switchState})
+        }
+
     }
 
     //从 ColorSwitch 中获取 switch 的状态值，用来控制 newData 的数据类型。
@@ -25,17 +37,17 @@ class TableBg extends React.Component {
     }
     
     //获取颜色值，并更新 data 数据
-    getValue = (name,value) => {
+    getValue = (name,value,object) => {
 
-        //获取状态中的 data, switchState, historyColor 数据
-        const {data, switchState, historyColor} = this.state;
+        //获取状态中的 data, switchState, lastPickedColor 数据
+        const {switchState,lastPickedColor} = this.state;
 
-        const {switchColorPicker} = this.props
+        const {switchColorPicker,data} = this.props
 
-        //当隔行换色按钮关闭时，传给 data 的颜色值为 “”，不更新 historyColor。以便在下次开启隔行换色时有值可以使用。
+        //当隔行换色按钮关闭时，传给 data 的颜色值为 “”，不更新 lastPickedColor。以便在下次开启隔行换色时有值可以使用。
         if(value !== ""){
             this.setState({
-                historyColor: value
+                lastPickedColor: value
             })
         }
 
@@ -45,46 +57,46 @@ class TableBg extends React.Component {
         //如果该组件运用于边框，边框颜色没有设置选择器。this.props.switchColorPicker 为 false 。在这种条件下开启边框色，允许修改填充色的同时修改边框色。
         //修改 fill 一并修改 intervalColor 的值。如果未开启，那么传给 intervalColor 的值为 “”。
         if(!switchColorPicker && switchState){
-            newData = {...data,"basicColor": historyColor,"intervalColor": value}
+            newData = {...data,"basicColor": value !== "" ? value : lastPickedColor ,"intervalColor":value,...object}
         }else{
-            newData = {...data,[name]: value};
+            newData = {...data,[name]: value,...object};
         }
-
-        //更新 tableAmount
-        this.setState({
-            data: newData,
-        })
 
         this.props.getControlData(this.props.name, newData)
     }
 
     render(){
-        const {defaultColor, toggleLabel,switchColor, switchColorPicker, getControlData} = this.props;
-        const {historyColor} = this.state
+        const {toggleLabel, switchColor, switchColorPicker, getControlData, type, data} = this.props;
+        const {lastPickedColor, switchState} = this.state;
+        
         return(
             <div>
-                <p>{this.props.type}</p>
+                <p>{type}</p>
                 <div className={styles["stork"]}>
                     
-                    {/*填充色*/}
+                    {/*填充色 边框色*/}
                     <div>
-                        <ColorPicker style={{ width: 62, height: 24}} defaultColor={defaultColor} name = "basicColor" getValue={this.getValue}/>
+                        <ColorPicker style={{ width: 62, height: 24}} defaultColor={data.basicColor} name = "basicColor" getValue={this.getValue}/>
                         <label>颜色</label>
                     </div>
 
-                    {/*隔行换色*/}
-                    <div style={{display:switchColor?"block":"none"}}>
+                    {/*隔行换色 分割线颜色*/}
+                    {
+                        switchColor ? 
                         <ColorSwitch 
                             name = "intervalColor" 
-                            defaultColor={defaultColor} 
-                            historyColor={historyColor} 
+                            defaultColor={data.basicColor}
+                            lastPickedColor={switchState ? data.intervalColor : lastPickedColor} 
                             toggleLabel={toggleLabel} 
+                            switchState = {data.switchState}
                             switchColorPicker={switchColorPicker} 
                             getControlData={getControlData}
                             getValue={this.getValue} 
                             getSwitchState={this.getSwitchState} 
-                        />
-                    </div>
+                        />:
+                        null
+                    }
+                    
 
                     
 

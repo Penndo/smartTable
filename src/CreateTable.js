@@ -1,23 +1,24 @@
 import sketch from 'sketch';
 import BrowserWindow from 'sketch-module-web-view';
-import { Rectangle, ShapePath, Style, Color, Group, Text, Layer } from 'sketch/dom';
+import {ShapePath, Color, Group, Text, Layer, SymbolMaster, SymbolInstance,Document } from 'sketch/dom';
 import { getWebview } from 'sketch-module-web-view/remote';
 import UI from 'sketch/ui';
 
 const webviewIdentifier = 'smarttable.webview'
 
-const thisDocument = sketch.getSelectedDocument();
-const selectedLayers = thisDocument.selectedLayers.layers;
+const selectedDocument = Document.getSelectedDocument();
+const selectedPages = selectedDocument.pages;
+const selectedLayers = selectedDocument.selectedLayers.layers;
 
 export default function () {
-  const options = {
+  const browserWindowOptions = {
     identifier: webviewIdentifier,
     width: 1280,
     height: 768,
     show: false
   }
-
-  const browserWindow = new BrowserWindow(options)
+  
+  const browserWindow = new BrowserWindow(browserWindowOptions)
 
   // only show the window when the page has loaded to avoid a white flash
   browserWindow.once('ready-to-show', () => {
@@ -39,36 +40,68 @@ export default function () {
       .catch(console.error)
   })
 
+  //累加
   function addReducer(a, b) {
     return a + b;
   }
 
+  //获取最大值
   function getMaxValue(arr) {
     let maxValue = "";
     if (isNaN(Math.max(arr))) {
       maxValue = arr[0]
     } else {
-      maxValue = Math.max(arr)
+      maxValue = Math.max(...arr)
     }
     return maxValue
   }
 
+  //固定位置
+  function fix(item,positionArr){
+    let itemNative = item.sketchObject;
+    itemNative.hasFixedLeft = false;
+    itemNative.hasFixedRight = false;
+    itemNative.hasFixedTop = false;
+    itemNative.hasFixedBottom = false;
+    itemNative.hasFixedWidth = false;
+    itemNative.hasFixedHeight = false;
 
+    for(let i=0;i<positionArr.length;i++){
+        switch (positionArr[i]) {
+            case "left":
+                itemNative.hasFixedLeft = true;
+                break;
+            case "right":
+                itemNative.hasFixedRight = true;
+                break;
+            case "top":
+                itemNative.hasFixedTop = true;
+                break;
+            case "bottom":
+                itemNative.hasFixedBottom = true;
+                break;
+            case "width":
+                itemNative.hasFixedWidth = true;
+                break;
+            case "height":
+                itemNative.hasFixedHeight = true;
+                break;
+            default:
+                break;
+        }
+    }
+}
 
   browserWindow.loadURL(require('../resources/webview.html'))
-  browserWindow.webContents.on('insert', function (renderHead, renderData, controlData) {
-    const paddingBottom = controlData.padding.bottom;
-    const paddingLeft = controlData.padding.left;
-    const paddingTop = controlData.padding.top;
-
-    console.log("执行了吗")
-
+  browserWindow.webContents.on('insert', function (renderHead, renderData, controlData, cellSize) {
+    
+    const {b_bottom, b_left, b_top} = controlData.tbodyPadding
+    const {h_bottom, h_top} = controlData.theadPadding
+    
     let titleArr = []
     for (let o of renderHead) {
-      titleArr.push(o.title)
+      titleArr.push(o.colID)
     }
-
-    console.log(titleArr)
 
     let tbodyRowsGroup = [];
     let tbodyRowsHeight = [0];
@@ -77,28 +110,130 @@ export default function () {
     let cellGroupArr = [];
     let cellHeightArr = [];
 
-    titleArr.map((cell, cellIndex) => {
-      console.log(cell)
+    //定义一个表格组件
+
+    //定义表格背景
+    const cellBg = new ShapePath({
+      shapeType: ShapePath.ShapeType.Rectangle,
+      name: "cellBg",
+      frame: {
+          x: 0,
+          y: 0,
+          width: 120,
+          height: 40,
+      },
+      style: {
+          fills: [
+              {
+                  fillType: Color,
+                  enabled: true,
+                  color: "#ffffff",
+              }
+          ],
+          borders: [],
+          styleType: Layer,
+      },
+    });
+  
+    const cellText = new Text({
+        text: "text",
+        name: "layerName",
+        style: {
+          textColor:"#000000",
+          fontSize: 14,
+          borders: [],
+        }
+    });
+    cellText.adjustToFit();
+    cellText.frame.x = 8;
+    cellText.frame.y = (cellBg.frame.height - cellText.frame.height) / 2;
+  
+    const borderBottom = new ShapePath({
+      shapeType: ShapePath.ShapeType.Rectangle,
+      name: "borderBottom",
+      frame: {
+          x: 0,
+          y: cellBg.frame.height - 1,
+          width: 120,
+          height: 1,
+      },
+      style: {
+          fills: [
+          {
+              fillType: Color,
+              enabled: true,
+              color: "#eeeeee",
+          }
+          ],
+          borders: [],
+          styleType: Layer,
+      },
+    })
+  
+
+    const borderRight = new ShapePath({
+      shapeType: ShapePath.ShapeType.Rectangle,
+      name: "borderRight",
+      frame: {
+          x: cellBg.frame.width - 1,
+          y: 0,
+          width: 1,
+          height: 40,
+      },
+      style: {
+          fills: [
+          {
+              fillType: Color,
+              enabled: true,
+              color: "#eeeeee",
+          }
+          ],
+          borders: [],
+          styleType: Layer,
+      },
+    })
+  
+    fix(cellBg,["left","right","top","bottom"]);
+    fix(cellText,["left"]);
+    fix(borderBottom,["bottom","height"]);
+    fix(borderRight,["right","width"]);
+
+    var symbolSource = new SymbolMaster({
+      name:"TD",
+      layers:[cellBg,cellText,borderBottom,borderRight],
+      parent:selectedPages[0],
+      frame:{
+          x:currentSymbolPosition,
+          y:0,
+          width:cellBg.frame.width,
+          height:cellBg.frame.height
+      },
+    });
+
+    var instance = symbolSource.createNewInstance();
+
+    //thead 内容
+    renderHead.map((cell, cellIndex) => {
       //定义表格内容
       const cellText = new Text({
-        text: cell.toString(),
-        name: cell.toString(),
+        text: cell.title.toString() === "" ? " " : cell.title.toString(),
+        name: cell.title.toString() === "" ? "text" : cell.title.toString(),
         style: {
           textColor: controlData.theadTextStyle.basicColor,
           fontSize: controlData.theadTextStyle.fontSize,
           borders: [],
         }
       });
-      cellText.frame.x = paddingLeft;
-      cellText.frame.y = paddingTop;
-
+      cellText.frame.x = b_left;
+      cellText.frame.y = h_top;
+      
       const borderBottom = new ShapePath({
         shapeType: ShapePath.ShapeType.Rectangle,
         name: "borderBottom",
         frame: {
           x: 0,
-          y: cellText.frame.height * 1 + paddingBottom * 1 + paddingTop * 1 - 1,
-          width: controlData.cellSize.width[cellIndex],
+          y: cellText.frame.height * 1 + h_bottom * 1 + h_top * 1 - 1,
+          width: cellSize.width[cellIndex],
           height: 1,
         },
         style: {
@@ -118,10 +253,10 @@ export default function () {
         shapeType: ShapePath.ShapeType.Rectangle,
         name: "borderRight",
         frame: {
-          x: controlData.cellSize.width[cellIndex]*1 - 1,
+          x: cellSize.width[cellIndex]*1 - 1,
           y: 0,
           width: 1,
-          height: cellText.frame.height * 1 + paddingBottom * 1 + paddingTop * 1,
+          height: cellText.frame.height * 1 + h_bottom * 1 + h_top * 1,
         },
         style: {
           fills: [
@@ -143,8 +278,8 @@ export default function () {
         frame: {
           x: 0,
           y: 0,
-          width: controlData.cellSize.width[cellIndex],
-          height: cellText.frame.height * 1 + paddingBottom * 1 + paddingTop * 1,
+          width: cellSize.width[cellIndex],
+          height: cellText.frame.height * 1 + h_bottom * 1 + h_top * 1,
         },
         style: {
           fills: [
@@ -158,7 +293,7 @@ export default function () {
           styleType: Layer,
         },
       })
-
+      
       let cellGroupLayers = [];
 
       if(cellIndex === titleArr.length - 1){
@@ -207,13 +342,16 @@ export default function () {
       layers: cellGroupArr,
     });
 
+    
+    //tbody 内容
     renderData.map((row,rowIndex) => {
       let cellWidthArr = [0]
       let cellGroupArr = [];
       let cellHeightArr = [];
-
+      
       titleArr.map((cell, cellIndex) => {
         //定义表格内容
+        console.log("数据来了/213")
         const cellText = new Text({
           //表格数据是否为空
           text: row[cell].toString() === "" ? " " : row[cell].toString(),
@@ -224,16 +362,17 @@ export default function () {
             borders: [],
           }
         });
-        cellText.frame.x = paddingLeft;
-        cellText.frame.y = paddingTop;
-
+        console.log("数据来了/224")
+        cellText.frame.x = b_left;
+        cellText.frame.y = b_top;
+        console.log("数据来了/217")
         const borderBottom = new ShapePath({
           shapeType: ShapePath.ShapeType.Rectangle,
           name: "borderBottom",
           frame: {
             x: 0,
-            y: cellText.frame.height * 1 + paddingBottom * 1 + paddingTop * 1 - 1,
-            width: controlData.cellSize.width[cellIndex],
+            y: cellText.frame.height * 1 + b_bottom * 1 + b_top * 1 - 1,
+            width: cellSize.width[cellIndex],
             height: 1,
           },
           style: {
@@ -253,10 +392,10 @@ export default function () {
           shapeType: ShapePath.ShapeType.Rectangle,
           name: "borderRight",
           frame: {
-            x: controlData.cellSize.width[cellIndex]*1 - 1,
+            x: cellSize.width[cellIndex]*1 - 1,
             y: 0,
             width: 1,
-            height: cellText.frame.height * 1 + paddingBottom * 1 + paddingTop * 1,
+            height: cellText.frame.height * 1 + b_bottom * 1 + b_top * 1,
           },
           style: {
             fills: [
@@ -270,7 +409,7 @@ export default function () {
             styleType: Layer,
           },
         })
-
+        
         //定义表格背景
         const cellBg = new ShapePath({
           shapeType: ShapePath.ShapeType.Rectangle,
@@ -278,8 +417,8 @@ export default function () {
           frame: {
             x: 0,
             y: 0,
-            width: controlData.cellSize.width[cellIndex],
-            height: cellText.frame.height * 1 + paddingBottom * 1 + paddingTop * 1,
+            width: cellSize.width[cellIndex],
+            height: cellText.frame.height * 1 + b_bottom * 1 + b_top * 1,
           },
           style: {
             fills: [
@@ -293,7 +432,7 @@ export default function () {
             styleType: Layer,
           },
         })
-
+        
         let cellGroupLayers = [];
 
         if(rowIndex === renderData.length - 1 && cellIndex === titleArr.length - 1){

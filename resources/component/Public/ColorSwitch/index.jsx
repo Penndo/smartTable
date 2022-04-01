@@ -6,17 +6,30 @@ import styles from "./index.module.less"
 class ColorSwitch extends React.Component {
     //通过 ToggleSwitch 控制颜色的传递
     state = {
-        isDisplay:"none",
-        intervalDefaultColor:this.props.historyColor,
+        switchState:this.props.switchState,
+        intervalDefaultColor:this.props.lastPickedColor,
         keyValue:1
     }
 
+    componentDidUpdate(prevProps){
+        if(this.props.switchState !== prevProps.switchState){
+            this.setState({
+                switchState:this.props.switchState
+            })
+        }        
+        if(this.props.lastPickedColor !== prevProps.lastPickedColor){
+            this.setState({
+                intervalDefaultColor:this.props.lastPickedColor
+            })
+        }
+    }
+
     handleSwitch = (switchState) => { 
-        //开关打开时，将 historyColor 传到 intervalColor 中；开关关闭时，将 “空” 传到 intervalColor 中
-        this.props.getValue("intervalColor", switchState ? this.props.historyColor : "");
+        //开关打开时，将 lastPickedColor 传到 intervalColor 中；开关关闭时，将 “空” 传到 intervalColor 中
+        this.props.getValue("intervalColor", switchState ? this.props.lastPickedColor : "",{"switchState":switchState});
         this.setState({
-            isDisplay: switchState ? "block" : "none",
-            intervalDefaultColor: this.props.historyColor,
+            switchState: switchState,
+            intervalDefaultColor: this.state.lastPickedColor,
         })  
 
         //用来控制 keyValue 的值，进而控制 colorPicker 是否更新，switch 每次打开时，keyValue + 1，生成一个新的colorPicker。
@@ -32,17 +45,19 @@ class ColorSwitch extends React.Component {
     
     render(){
         const {toggleLabel, switchColorPicker, getValue, name} = this.props;
-        const {isDisplay, intervalDefaultColor} = this.state;
+        const {switchState, intervalDefaultColor} = this.state;
 
         return (
             <div className={styles["switchGroup"]}>
             
-                <ToggleSwitch label={toggleLabel} handleSwitch = {this.handleSwitch}/>
+                <ToggleSwitch label={toggleLabel} handleSwitch = {this.handleSwitch} switchState={switchState}/>
 
                 {/*包裹层的 div 用来控制 colorpicker 是否可用*/}
-                <div style={{display: switchColorPicker ? isDisplay : "none"}}>
-                    <ColorPicker key={this.state.keyValue} style={{ width: 24, height: 24, marginLeft: 8}} defaultColor={intervalDefaultColor} name={name} getValue={getValue} />
-                </div>
+                {
+                    switchColorPicker && switchState ?
+                    <ColorPicker key={this.state.keyValue} style={{ width: 24, height: 24, marginLeft: 8}} defaultColor={intervalDefaultColor} name={name} getValue={getValue} /> :
+                    null
+                }
             </div>
         )
     }
