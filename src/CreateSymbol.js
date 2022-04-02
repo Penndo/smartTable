@@ -152,6 +152,8 @@ export default function(){
         },
     });
 
+    // var instance = symbol.createNewInstance();
+
     var instance = new SymbolInstance({
         name:"symbolInstance",
         parent:selectedLayers[0],
@@ -169,22 +171,26 @@ export default function(){
     const override = {
         value:"啊哈"
     }
-    // instance.overrides[0] = Object.assign(instance.overrides[0],override);
+
+    
+    instance.overrides[0] = Object.assign(instance.overrides[0],override);
     instance.setOverrideValue(instance.overrides[0],"打你娃儿哟")
     duplicatedLayer.setOverrideValue(duplicatedLayer.overrides[0],"你个憨批")
-    // var instance = symbol.createNewInstance();
+    
 
-    // var group = new Group({
-    //     name: 'group',
-    //     parent:selectedLayers[0],
-    //     frame: {
-    //       x: 0,
-    //       y: 0,
-    //       width: instance.frame.width,
-    //       height: instance.frame.height
-    //     },
-    //     layers: [instance],
-    // })
+    var group = new Group({
+        name: 'group',
+        parent:selectedLayers[0],
+        frame: {
+          x: 0,
+          y: 0,
+          width: instance.frame.width,
+          height: instance.frame.height
+        },
+        layers: [instance],
+    })
+
+    console.log(instance.overrides)
 
     console.log(duplicatedLayer)
 }

@@ -9,6 +9,7 @@ const webviewIdentifier = 'smarttable.webview'
 const selectedDocument = Document.getSelectedDocument();
 const selectedPages = selectedDocument.pages;
 const selectedLayers = selectedDocument.selectedLayers.layers;
+const symbols = context.document.currentPage().symbols();
 
 export default function () {
   const browserWindowOptions = {
@@ -67,38 +68,37 @@ export default function () {
     itemNative.hasFixedHeight = false;
 
     for(let i=0;i<positionArr.length;i++){
-        switch (positionArr[i]) {
-            case "left":
-                itemNative.hasFixedLeft = true;
-                break;
-            case "right":
-                itemNative.hasFixedRight = true;
-                break;
-            case "top":
-                itemNative.hasFixedTop = true;
-                break;
-            case "bottom":
-                itemNative.hasFixedBottom = true;
-                break;
-            case "width":
-                itemNative.hasFixedWidth = true;
-                break;
-            case "height":
-                itemNative.hasFixedHeight = true;
-                break;
-            default:
-                break;
-        }
+      switch (positionArr[i]) {
+        case "left":
+            itemNative.hasFixedLeft = true;
+            break;
+        case "right":
+            itemNative.hasFixedRight = true;
+            break;
+        case "top":
+            itemNative.hasFixedTop = true;
+            break;
+        case "bottom":
+            itemNative.hasFixedBottom = true;
+            break;
+        case "width":
+            itemNative.hasFixedWidth = true;
+            break;
+        case "height":
+            itemNative.hasFixedHeight = true;
+            break;
+        default:
+            break;
+      }
     }
-}
+  }
 
   browserWindow.loadURL(require('../resources/webview.html'))
   browserWindow.webContents.on('insert', function (renderHead, renderData, controlData, cellSize) {
-    
     const {b_bottom, b_left, b_top} = controlData.tbodyPadding
     const {h_bottom, h_top} = controlData.theadPadding
     
-    let titleArr = []
+    let titleArr = [];
     for (let o of renderHead) {
       titleArr.push(o.colID)
     }
@@ -124,17 +124,17 @@ export default function () {
       },
       style: {
           fills: [
-              {
-                  fillType: Color,
-                  enabled: true,
-                  color: "#ffffff",
-              }
+            {
+              fillType: Color,
+              enabled: true,
+              color: controlData.fill.basicColor,
+            }
           ],
           borders: [],
           styleType: Layer,
       },
     });
-  
+
     const cellText = new Text({
         text: "text",
         name: "layerName",
@@ -145,9 +145,9 @@ export default function () {
         }
     });
     cellText.adjustToFit();
-    cellText.frame.x = 8;
+    cellText.frame.x = b_left;
     cellText.frame.y = (cellBg.frame.height - cellText.frame.height) / 2;
-  
+
     const borderBottom = new ShapePath({
       shapeType: ShapePath.ShapeType.Rectangle,
       name: "borderBottom",
@@ -159,48 +159,33 @@ export default function () {
       },
       style: {
           fills: [
-          {
+            {
               fillType: Color,
               enabled: true,
-              color: "#eeeeee",
-          }
+              color: controlData.border.basicColor,
+            }
           ],
           borders: [],
           styleType: Layer,
       },
     })
-  
-
-    const borderRight = new ShapePath({
-      shapeType: ShapePath.ShapeType.Rectangle,
-      name: "borderRight",
-      frame: {
-          x: cellBg.frame.width - 1,
-          y: 0,
-          width: 1,
-          height: 40,
-      },
-      style: {
-          fills: [
-          {
-              fillType: Color,
-              enabled: true,
-              color: "#eeeeee",
-          }
-          ],
-          borders: [],
-          styleType: Layer,
-      },
-    })
-  
+    
     fix(cellBg,["left","right","top","bottom"]);
-    fix(cellText,["left"]);
+    fix(cellText,["left","width"]);
     fix(borderBottom,["bottom","height"]);
-    fix(borderRight,["right","width"]);
+
+    let symbolsPosition = [],currentSymbolPosition = 0;
+    if(symbols.count() > 0) {
+        for(let i=0;i<symbols.count();i++){
+            let symbol = sketch.fromNative(symbols[i]);
+            symbolsPosition.push(symbol.frame.x + symbol.frame.width);
+        };
+        currentSymbolPosition = Math.max(...symbolsPosition) + 100;
+    }
 
     var symbolSource = new SymbolMaster({
-      name:"TD",
-      layers:[cellBg,cellText,borderBottom,borderRight],
+      name:"symbolSource",
+      layers:[cellBg,cellText,borderBottom],
       parent:selectedPages[0],
       frame:{
           x:currentSymbolPosition,
@@ -209,118 +194,32 @@ export default function () {
           height:cellBg.frame.height
       },
     });
-
-    var instance = symbolSource.createNewInstance();
-
     //thead 内容
-    renderHead.map((cell, cellIndex) => {
-      //定义表格内容
-      const cellText = new Text({
-        text: cell.title.toString() === "" ? " " : cell.title.toString(),
-        name: cell.title.toString() === "" ? "text" : cell.title.toString(),
-        style: {
-          textColor: controlData.theadTextStyle.basicColor,
-          fontSize: controlData.theadTextStyle.fontSize,
-          borders: [],
-        }
-      });
-      cellText.frame.x = b_left;
-      cellText.frame.y = h_top;
+    renderHead.forEach((cell, cellIndex) => {
+
+      const 
+      cellGroup_frame_x = cellWidthArr.reduce(addReducer),
+      cellGroup_frame_width = cellSize.width[cellIndex],
+      cellGroup_frame_height = cellSize.height[0];
       
-      const borderBottom = new ShapePath({
-        shapeType: ShapePath.ShapeType.Rectangle,
-        name: "borderBottom",
+      var cellGroup = new SymbolInstance({
+        name:"theadCell",
+        parent:selectedLayers[0],
         frame: {
-          x: 0,
-          y: cellText.frame.height * 1 + h_bottom * 1 + h_top * 1 - 1,
-          width: cellSize.width[cellIndex],
-          height: 1,
+            x: cellGroup_frame_x,
+            y: 0,
+            width: cellGroup_frame_width,
+            height: cellGroup_frame_height
         },
-        style: {
-          fills: [
-            {
-              fillType: Color,
-              enabled: true,
-              color: controlData.border.basicColor,
-            }
-          ],
-          borders: [],
-          styleType: Layer,
-        },
+        master:symbolSource,
       })
 
-      const borderRight = new ShapePath({
-        shapeType: ShapePath.ShapeType.Rectangle,
-        name: "borderRight",
-        frame: {
-          x: cellSize.width[cellIndex]*1 - 1,
-          y: 0,
-          width: 1,
-          height: cellText.frame.height * 1 + h_bottom * 1 + h_top * 1,
-        },
-        style: {
-          fills: [
-            {
-              fillType: Color,
-              enabled: true,
-              color: controlData.border.basicColor,
-            }
-          ],
-          borders: [],
-          styleType: Layer,
-        },
-      })
-
-      //定义表格背景
-      const cellBg = new ShapePath({
-        shapeType: ShapePath.ShapeType.Rectangle,
-        name: "cellBg",
-        frame: {
-          x: 0,
-          y: 0,
-          width: cellSize.width[cellIndex],
-          height: cellText.frame.height * 1 + h_bottom * 1 + h_top * 1,
-        },
-        style: {
-          fills: [
-            {
-              fillType: Color,
-              enabled: true,
-              color: controlData.theadFill.basicColor,
-            }
-          ],
-          borders: [],
-          styleType: Layer,
-        },
-      })
-      
-      let cellGroupLayers = [];
-
-      if(cellIndex === titleArr.length - 1){
-        cellGroupLayers = [cellBg,cellText,borderBottom]
-      }else{
-        if(controlData.border.intervalColor === ""){
-          cellGroupLayers = [cellBg,cellText,borderBottom]
-        }else{
-          cellGroupLayers = [cellBg,cellText,borderBottom,borderRight]
-        }
+      const override = {
+        value:cell.title.toString() === "" ? " " : cell.title.toString(),
       }
 
-      //将表格内容与表格背景编组并整合为一行
-      let cellGroup = new Group({
-        name: 'cell',
-        frame: {
-          //x 位置为前一个编组的宽度
-          x: cellWidthArr.reduce(addReducer),
-          y: 0,
-          //宽高为表格背景的宽度
-          width: cellBg.frame.width,
-          height: cellBg.frame.height
-        },
-        layers: cellGroupLayers,
-      });
+      cellGroup.overrides[0] = Object.assign(cellGroup.overrides[0],override);
 
-      //将单元格编组放入一个数组中，供下方的行编组使用。
       cellGroupArr.push(cellGroup);
       cellWidthArr.push(cellGroup.frame.width);
       cellHeightArr.push(cellGroup.frame.height)
@@ -330,152 +229,57 @@ export default function () {
     //将上面的单元格编组放入到 行内容编组中
     let rowGroup = new Group({
       name: 'row',
-      // parent:selectedLayers[0],
       //这里一定要注意 frame 和 layers 的顺序。如果 layers 在前，那么后面设置的 frame 将对先生成的内容进行拉伸。
       frame: {
         x: 0,
         y: 0,
         width: cellWidthArr.reduce(addReducer),
-        // height:Math.max(cellHeightArr),
         height: getMaxValue(cellHeightArr)
       },
       layers: cellGroupArr,
     });
 
-    
     //tbody 内容
-    renderData.map((row,rowIndex) => {
-      let cellWidthArr = [0]
-      let cellGroupArr = [];
-      let cellHeightArr = [];
-      
-      titleArr.map((cell, cellIndex) => {
-        //定义表格内容
-        console.log("数据来了/213")
-        const cellText = new Text({
-          //表格数据是否为空
-          text: row[cell].toString() === "" ? " " : row[cell].toString(),
-          name: row[cell].toString() === "" ? "text" : row[cell].toString(),
-          style: {
-            textColor: controlData.textStyle.basicColor,
-            fontSize: controlData.textStyle.fontSize,
-            borders: [],
-          }
-        });
-        console.log("数据来了/224")
-        cellText.frame.x = b_left;
-        cellText.frame.y = b_top;
-        console.log("数据来了/217")
-        const borderBottom = new ShapePath({
-          shapeType: ShapePath.ShapeType.Rectangle,
-          name: "borderBottom",
+    renderData.forEach((row,rowIndex) => {
+
+      let 
+      cellWidthArr = [0], cellGroupArr = [], cellHeightArr = [];
+
+
+      // const 
+      // rowGroup_frame_y = tbodyRowsHeight.reduce(addReducer), 
+      // rowGroup_frame_width = cellWidthArr.reduce(addReducer),
+      // rowGroup_frame_height = getMaxValue(cellHeightArr);
+
+      titleArr.forEach((cell, cellIndex) => {
+        
+        const //提前取出要用到的值，避免在生成内容时再去计算，这样在速度上会有不小的提升。
+        cellGroup_name = row[cell].toString() === "" ? "tbodyCell" : row[cell].toString(),
+        cellGroup_frame_x = cellWidthArr.reduce(addReducer),
+        cellGroup_frame_width = cellSize.width[cellIndex],
+        cellGroup_frame_height = cellSize.height[rowIndex + 1];
+
+        var cellGroup = new SymbolInstance({
+          name:cellGroup_name,
+          parent:selectedLayers[0],
           frame: {
-            x: 0,
-            y: cellText.frame.height * 1 + b_bottom * 1 + b_top * 1 - 1,
-            width: cellSize.width[cellIndex],
-            height: 1,
+            x: cellGroup_frame_x,
+            y: 0,
+            width: cellGroup_frame_width,
+            height: cellGroup_frame_height
           },
-          style: {
-            fills: [
-              {
-                fillType: Color,
-                enabled: true,
-                color: controlData.border.basicColor,
-              }
-            ],
-            borders: [],
-            styleType: Layer,
-          },
+          master:symbolSource,
         })
 
-        const borderRight = new ShapePath({
-          shapeType: ShapePath.ShapeType.Rectangle,
-          name: "borderRight",
-          frame: {
-            x: cellSize.width[cellIndex]*1 - 1,
-            y: 0,
-            width: 1,
-            height: cellText.frame.height * 1 + b_bottom * 1 + b_top * 1,
-          },
-          style: {
-            fills: [
-              {
-                fillType: Color,
-                enabled: true,
-                color: controlData.border.basicColor,
-              }
-            ],
-            borders: [],
-            styleType: Layer,
-          },
-        })
-        
-        //定义表格背景
-        const cellBg = new ShapePath({
-          shapeType: ShapePath.ShapeType.Rectangle,
-          name: "cellBg",
-          frame: {
-            x: 0,
-            y: 0,
-            width: cellSize.width[cellIndex],
-            height: cellText.frame.height * 1 + b_bottom * 1 + b_top * 1,
-          },
-          style: {
-            fills: [
-              {
-                fillType: Color,
-                enabled: true,
-                color: controlData.fill.intervalColor !== "" && rowIndex%2 === 1 ? controlData.fill.intervalColor : controlData.fill.basicColor,
-              }
-            ],
-            borders: [],
-            styleType: Layer,
-          },
-        })
-        
-        let cellGroupLayers = [];
-
-        if(rowIndex === renderData.length - 1 && cellIndex === titleArr.length - 1){
-          cellGroupLayers = [cellBg,cellText]
-        }else{
-          if(cellIndex === titleArr.length - 1){
-            cellGroupLayers = [cellBg,cellText,borderBottom]
-          }else{
-            if(controlData.border.intervalColor === ""){
-              if(rowIndex === renderData.length - 1){
-                cellGroupLayers = [cellBg,cellText]
-              }else{
-                cellGroupLayers = [cellBg,cellText,borderBottom]
-              }
-            }else{
-              if(rowIndex === renderData.length - 1){
-                cellGroupLayers = [cellBg,cellText,borderRight]
-              }else{
-                cellGroupLayers = [cellBg,cellText,borderBottom,borderRight]
-              }
-            }
-          }
+        const override = {
+          value:row[cell].toString() === "" ? " " : row[cell].toString(),
         }
-
-        //将表格内容与表格背景编组并整合为一行
-        let cellGroup = new Group({
-          name: 'cell',
-          frame: {
-            //x 位置为前一个编组的宽度
-            x: cellWidthArr.reduce(addReducer),
-            y: 0,
-            //宽高为表格背景的宽度
-            width: cellBg.frame.width,
-            height: cellBg.frame.height
-          },
-          layers: cellGroupLayers,
-        });
+        cellGroup.overrides[0] = Object.assign(cellGroup.overrides[0],override);
 
         //将单元格编组放入一个数组中，供下方的行编组使用。
         cellGroupArr.push(cellGroup);
         cellWidthArr.push(cellGroup.frame.width);
-        cellHeightArr.push(cellGroup.frame.height)
-
+        cellHeightArr.push(cellGroup.frame.height);
       })
 
       //将上面的单元格编组放入到 行内容编组中
@@ -496,6 +300,14 @@ export default function () {
       tbodyRowsHeight.push(rowGroup.frame.height)
 
     })
+
+    
+
+    // const 
+    // thead_frame_width = rowGroup.frame.width,
+    // thead_frame_height = rowGroup.frame.height,
+    // tbody_frame_widht = tbodyRowsGroup[0].frame.width,
+    // tbody_frame_height = tbodyRowsHeight.reduce(addReducer);
 
     let thead = new Group({
       name: 'thead',
@@ -519,7 +331,6 @@ export default function () {
       },
       layers: tbodyRowsGroup
     })
-
 
     new Group({
       name: 'smartTable',
