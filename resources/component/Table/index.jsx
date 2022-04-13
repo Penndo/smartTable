@@ -26,7 +26,6 @@ function eventPosition(e) {
 export default function Table(props) {
 
     const {controlData,cellSize,colID,rowID,getColID,getRowID,getControlData, getCellSize, getRenderData, getRenderHead,dynamicData,dynamicHead,setDynamicData,setDynamicHead} = props;
-    //获取行、列数
     const {cols,rows} = controlData.tableAmount;
 
     //获取数据源、参数
@@ -84,33 +83,6 @@ export default function Table(props) {
     // },[api,apiParameter,setDynamicHead,setDynamicData])
 
     React.useEffect(()=>{
-
-        //自动去获取列的高度。因为我们没有手动去干预，如果后面需要手动干预高度，可能这里也不需要了
-        let tableRows = Array.from(table.current.rows);
-        // let tableCols = Array.from(table.current.rows[0].cells);
-
-        //获取单元格宽度
-        // let newstWidthArr = [];
-        //获取单元格高度
-        let newstHeightArr = [];
-        //用来存放单元格尺寸的对象
-        let newCellSize = {};
-
-        //用循环获得行的高度
-        for(let i=0;i<tableRows.length;i++){
-            newstHeightArr.push(tableRows[i].offsetHeight)
-        };
-
-        // //用循环获得列的宽度
-        // for(let i=0;i<tableCols.length;i++){
-        //     newstWidthArr.push(tableCols[i].offsetWidth)
-        // };
-    
-        //将获取的尺寸放进尺寸对象中
-        newCellSize.width = cellSize.width;
-        newCellSize.height = newstHeightArr;
-        getCellSize(newCellSize)
-
         // console.log(newCellSize)
         //复制一份 tbody 和 thead 的数据
         let longestData = dynamicData.slice();
@@ -121,7 +93,6 @@ export default function Table(props) {
         let readyRenderHead = shearData(cols,longestHead,colID,"colID",getColID);
         let readyRenderData = shearData(rows,longestData,rowID,"rowID",getRowID);
         //此时，数据新增了，但是dynamicData 的数据没变，还是原始数据。
-
 
         let mergedHead = [];
         // 处理 readyRenderHead 中的 serialNumber，使其为对应的编号
@@ -149,8 +120,7 @@ export default function Table(props) {
             //将对象放入 mergedData 中
             mergedData.push(row);
         } 
-        
-        // console.log(mergedData)
+
         setRenderHead(mergedHead);
         setRenderData(mergedData);
         //获取 renderData，renderHead 数据返回给 头部的 App。为什么？因为最后需要把这部分数据传给 sketch

@@ -1,17 +1,15 @@
 import sketch from 'sketch';
+import {ShapePath, Color, Group, Text, Layer, SymbolMaster, SymbolInstance,Document,Page } from 'sketch/dom';
 import BrowserWindow from 'sketch-module-web-view';
-import {ShapePath, Color, Group, Text, Layer, SymbolMaster, SymbolInstance,Document } from 'sketch/dom';
 import { getWebview } from 'sketch-module-web-view/remote';
+import { createCellText, createCellBg, createBorderBottom } from './createLayers';
+import { createNewSymbolMaster } from './Help';
 import UI from 'sketch/ui';
 
 const webviewIdentifier = 'smarttable.webview'
 
-const selectedDocument = Document.getSelectedDocument();
-const selectedPages = selectedDocument.pages;
-const selectedLayers = selectedDocument.selectedLayers.layers;
-const symbols = context.document.currentPage().symbols();
-
 export default function () {
+
   const browserWindowOptions = {
     identifier: webviewIdentifier,
     width: 1280,
@@ -93,10 +91,63 @@ export default function () {
     }
   }
 
+  //转换字重
+  function transFontWeight(fontWeight) {
+    switch (fontWeight) {
+      case "light":
+        return 2;
+      case "regular":
+        return 8
+      case "bold":
+        return 10
+      default:
+        return 8;
+    }
+  }
+
   browserWindow.loadURL(require('../resources/webview.html'))
   browserWindow.webContents.on('insert', function (renderHead, renderData, controlData, cellSize) {
-    const {b_bottom, b_left, b_top} = controlData.tbodyPadding
-    const {h_bottom, h_top} = controlData.theadPadding
+
+    var document = context.document;
+    var selectedLayers = document.currentPage().selectedLayers().layers();
+    var artboards = document.currentPage().artboards();
+    var currentPage = document.currentPage();
+
+    let parentOfSmartTable;
+    if(selectedLayers.count() != 0){
+      let layer = selectedLayers[0];
+      if(layer.className() != "MSLayerGroup" && layer.className() != "MSArtboardGroup"){
+
+        let x = layer.frame().rect().origin.x;
+        let y = layer.frame().rect().origin.y;
+
+        let group = MSLayerGroup.alloc().initWithFrame(layer.frame().rect());
+        let parentGroup = layer.parentGroup();
+
+        group.setName(layer.name());
+        layer.moveToLayer_beforeLayer(group,nil);
+        layer.frame().setX(0);
+        layer.frame().setY(0);
+
+        parentGroup.addLayer(group);
+        group.frame().setX(x);
+        group.frame().setY(y);
+
+        parentOfSmartTable = group;
+
+      }else{
+        parentOfSmartTable = selectedLayers[0]
+      }
+    }else{
+      if(artboards.count() != 0){
+        parentOfSmartTable = artboards[0]
+      }else{
+        parentOfSmartTable = currentPage;
+      }
+    }
+
+    const {b_bottom, b_left, b_top, b_right} = controlData.tbodyPadding;
+    const {h_bottom,h_top} = controlData.theadPadding
     
     let titleArr = [];
     for (let o of renderHead) {
@@ -110,93 +161,82 @@ export default function () {
     let cellGroupArr = [];
     let cellHeightArr = [];
 
-    //定义一个表格组件
+    let fontWeight_TD = transFontWeight(controlData.textStyle.fontWeight);
+    let fontWeight_TH = transFontWeight(controlData.theadTextStyle.fontWeight);
 
-    //定义表格背景
-    const cellBg = new ShapePath({
-      shapeType: ShapePath.ShapeType.Rectangle,
-      name: "cellBg",
-      frame: {
-          x: 0,
-          y: 0,
-          width: 120,
-          height: 40,
+    let styles_TD = {
+      cellBg:{
+        color:controlData.fill.basicColor.toUpperCase()
       },
-      style: {
-          fills: [
-            {
-              fillType: Color,
-              enabled: true,
-              color: controlData.fill.basicColor,
-            }
-          ],
-          borders: [],
-          styleType: Layer,
+      text:{
+        textColor:controlData.textStyle.basicColor.toUpperCase(),
+        fontSize:controlData.textStyle.fontSize,
+        fontWeight:fontWeight_TD,
+        alignment:"left",
+        borders:[]
       },
-    });
-
-    const cellText = new Text({
-        text: "text",
-        name: "layerName",
-        style: {
-          textColor:"#000000",
-          fontSize: 14,
-          borders: [],
-        }
-    });
-    cellText.adjustToFit();
-    cellText.frame.x = b_left;
-    cellText.frame.y = (cellBg.frame.height - cellText.frame.height) / 2;
-
-    const borderBottom = new ShapePath({
-      shapeType: ShapePath.ShapeType.Rectangle,
-      name: "borderBottom",
-      frame: {
-          x: 0,
-          y: cellBg.frame.height - 1,
-          width: 120,
-          height: 1,
+      borderBottom:{
+        color:controlData.border.basicColor.toUpperCase()
       },
-      style: {
-          fills: [
-            {
-              fillType: Color,
-              enabled: true,
-              color: controlData.border.basicColor,
-            }
-          ],
-          borders: [],
-          styleType: Layer,
-      },
-    })
-    
-    fix(cellBg,["left","right","top","bottom"]);
-    fix(cellText,["left","width"]);
-    fix(borderBottom,["bottom","height"]);
-
-    let symbolsPosition = [],currentSymbolPosition = 0;
-    if(symbols.count() > 0) {
-        for(let i=0;i<symbols.count();i++){
-            let symbol = sketch.fromNative(symbols[i]);
-            symbolsPosition.push(symbol.frame.x + symbol.frame.width);
-        };
-        currentSymbolPosition = Math.max(...symbolsPosition) + 100;
+      padding:{
+        left:b_left,
+        right:b_right,
+        top:b_top,
+        bottom:b_bottom
+      }
     }
 
-    var symbolSource = new SymbolMaster({
-      name:"symbolSource",
-      layers:[cellBg,cellText,borderBottom],
-      parent:selectedPages[0],
-      frame:{
-          x:currentSymbolPosition,
-          y:0,
-          width:cellBg.frame.width,
-          height:cellBg.frame.height
+    let styles_TH = {
+      cellBg:{
+        color:controlData.theadFill.basicColor.toUpperCase()
       },
-    });
+      text:{
+        textColor:controlData.theadTextStyle.basicColor.toUpperCase(),
+        fontSize:controlData.theadTextStyle.fontSize,
+        fontWeight:fontWeight_TH,
+        alignment:"left",
+        borders:[]
+      },
+      borderBottom:{
+        color:controlData.border.basicColor.toUpperCase()
+      },
+      padding:{
+        left:b_left,
+        right:b_right,
+        top:h_top,
+        bottom:h_bottom
+      }
+    }
+
+    //表头&表格背景
+    const tdCellBg = createCellBg(styles_TH.cellBg.color);
+    const thCellBg = createCellBg(styles_TD.cellBg.color);
+  
+    //表头&表格文本
+    const tdCellText = createCellText(styles_TD.text,b_left);
+    const thCellText = createCellText(styles_TH.text,b_left);
+
+    //表头&表格下方分割线
+    const tdBorderBottom = createBorderBottom(styles_TD.borderBottom.color);
+    const thBorderBottom = createBorderBottom(styles_TH.borderBottom.color);
+    
+    //固定元素
+    fix(thCellBg,["left","right","top","bottom"]);
+    fix(tdCellBg,["left","right","top","bottom"]);
+    fix(thCellText,["left","width"]);
+    fix(tdCellText,["left","width"]);
+    fix(thBorderBottom,["bottom","height"]);
+    fix(tdBorderBottom,["bottom","height"]);
+        
+    let layersArr_TD = [tdCellBg,tdCellText,tdBorderBottom];
+    let layersArr_TH = [thCellBg,thCellText,thBorderBottom];
+        
+    let willUsedSymbolMaster_TD = createNewSymbolMaster("TD","UnSaved",layersArr_TD,styles_TD)
+    let willUsedSymbolMaster_TH = createNewSymbolMaster("TH","UnSaved",layersArr_TH,styles_TH)
+
+    
     //thead 内容
     renderHead.forEach((cell, cellIndex) => {
-
       const 
       cellGroup_frame_x = cellWidthArr.reduce(addReducer),
       cellGroup_frame_width = cellSize.width[cellIndex],
@@ -204,14 +244,14 @@ export default function () {
       
       var cellGroup = new SymbolInstance({
         name:"theadCell",
-        parent:selectedLayers[0],
+        parent:parentOfSmartTable,
         frame: {
             x: cellGroup_frame_x,
             y: 0,
             width: cellGroup_frame_width,
             height: cellGroup_frame_height
         },
-        master:symbolSource,
+        master:willUsedSymbolMaster_TH,
       })
 
       const override = {
@@ -261,14 +301,14 @@ export default function () {
 
         var cellGroup = new SymbolInstance({
           name:cellGroup_name,
-          parent:selectedLayers[0],
+          parent:parentOfSmartTable,
           frame: {
             x: cellGroup_frame_x,
             y: 0,
             width: cellGroup_frame_width,
             height: cellGroup_frame_height
           },
-          master:symbolSource,
+          master:willUsedSymbolMaster_TD,
         })
 
         const override = {
@@ -334,7 +374,7 @@ export default function () {
 
     new Group({
       name: 'smartTable',
-      parent: selectedLayers[0],
+      parent: parentOfSmartTable,
       frame: {
         x: 24,
         y: 24,
