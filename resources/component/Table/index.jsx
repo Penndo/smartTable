@@ -83,7 +83,24 @@ export default function Table(props) {
     // },[api,apiParameter,setDynamicHead,setDynamicData])
 
     React.useEffect(()=>{
-        // console.log(newCellSize)
+        //获取行的高度。因为我们没有手动去干预，如果后面需要手动干预高度，可能这里也不需要了
+        let tableRows = Array.from(table.current.rows);
+        let newstHeightArr = [];
+        let newCellSize = {};
+        for(let i=0;i<tableRows.length;i++){
+            newstHeightArr.push(tableRows[i].offsetHeight)
+        };
+
+        if(Math.max(...newstHeightArr) === 0){
+            newCellSize = {
+                height:[40,40,40,40,40],
+                width:[160,160,160,160]
+            };
+        }else{
+            newCellSize.width = cellSize.width;
+            newCellSize.height = newstHeightArr;
+        }
+
         //复制一份 tbody 和 thead 的数据
         let longestData = dynamicData.slice();
         let longestHead = dynamicHead.slice();
@@ -92,10 +109,11 @@ export default function Table(props) {
         //更新 controlData, 比较cols和longestHead.length的大小。如果cols<longestHead.length,就对现有表格进行裁剪，如果cols>longestHead.length,就对表格数量进行增加。
         let readyRenderHead = shearData(cols,longestHead,colID,"colID",getColID);
         let readyRenderData = shearData(rows,longestData,rowID,"rowID",getRowID);
-        //此时，数据新增了，但是dynamicData 的数据没变，还是原始数据。
-
+        
+        //此时，数据新增了，但是 dynamicData 的数据没变，还是原始数据。
         let mergedHead = [];
-        // 处理 readyRenderHead 中的 serialNumber，使其为对应的编号
+
+        // 处理 readyRenderHead 中的 serialNumber，使其为对应的编号。
         for(let i=0;i<readyRenderHead.length;i++){
             let col = {};
             readyRenderHead[i]["serialNumber"] = i;
@@ -123,9 +141,9 @@ export default function Table(props) {
 
         setRenderHead(mergedHead);
         setRenderData(mergedData);
-        //获取 renderData，renderHead 数据返回给 头部的 App。为什么？因为最后需要把这部分数据传给 sketch
         getRenderData(mergedData);
         getRenderHead(mergedHead);
+        getCellSize(newCellSize);
         
     },[cols,rows,dynamicHead,dynamicData,getRenderData,getRenderHead,getCellSize,cellSize.width,controlData,colID,rowID,getColID,getRowID])
   
