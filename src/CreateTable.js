@@ -97,11 +97,11 @@ export default function () {
       case "light":
         return 2;
       case "regular":
-        return 8
+        return 5
       case "bold":
         return 10
       default:
-        return 8;
+        return 5;
     }
   }
 
