@@ -5,6 +5,7 @@ const selectedDocument = Document.getSelectedDocument();
 const selectedPages = selectedDocument.pages;
 const selectedLayers = sketch.getSelectedDocument().selectedLayers.layers;
 const symbols = context.document.currentPage().symbols();
+const selection = context.selection;
 
 //
 function fix(item,positionArr){
@@ -96,12 +97,21 @@ export default function(){
     var currentPage = document.currentPage();
     var artboards = currentPage.artboards();
     var children = currentPage.children();
-    var selection = context.selection;
+    // var selection = context.selection;
+    //获取系统的字体文件，返回一个数组包含所有字体的名字
+    var fontFamilyNames = UIFont.familyNames();
+    // console.log(fontFamilyNames);
+    // console.log(UIFont.fontNamesForFamilyName("PingFang SC"));
+    //获取字体家族中的每一个字重
+    console.log(fontFamilyNames)
+    // fontFamilyNames.forEach((fontFamilyName)=>{
+    //     console.log(UIFont.fontNamesForFamilyName(fontFamilyName))
+    // })
 
     var selectedLayers = currentPage.selectedLayers();
     var artboards = context.document.currentPage().artboards();
 
-    console.log(selection[0].frame().rect().origin.x);
+    // console.log(selection[0].frame().rect().origin.x);
 
 
     //通过 NSPredicate 查找内容

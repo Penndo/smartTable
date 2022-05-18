@@ -5,7 +5,6 @@ import {v4 as uuidv4} from "uuid";
 
 import styles from "./index.module.less";
 
-
 const defaultStoreName = "defaultStore";
 const historyStoreName = "historyStore";
 
@@ -13,13 +12,11 @@ class Options extends React.Component{
 
     handleClick = (e)=>{
         const value = e.currentTarget.innerHTML;
-        console.log(value)
         this.props.selectOption(value)
     }
 
     deleteData = (keyValue,updateData)=>{
         return ()=>{
-            console.log(keyValue)
             createIDB().then((db)=>{
                 //从默认库中删除数据；
                 deleteItem(db,defaultStoreName,keyValue);
@@ -29,30 +26,35 @@ class Options extends React.Component{
                         const keyValue = result[result.length-1].title;
                         update(db,historyStoreName,{id:1,history:keyValue});
                         this.props.selectOption(keyValue);
+                        updateData();
                     }else{
                         deleteItem(db,historyStoreName,1);
                         this.props.backToInitialState();
                     }
-                    updateData();
                 });
                 
             })
-            
         }
 
     }
 
+    defaultData = () => {
+        this.props.refreshInterval_usedCount(1)
+        this.props.backToInitialState();
+        this.props.selectOption(this.props.defaultSelection)
+    }
+
     render(){
-        const {options,canDelete,updateData} = this.props;
+        const {options,canDelete,updateData,defaultSelection} = this.props;
         return(
             <ul>
                 {
                     options.map((item)=>{
                         return (
                             <li key={uuidv4()} >
-                                <p onMouseDown = {this.handleClick}>{item}</p>
+                                <p onMouseDown = { item !== defaultSelection ? this.handleClick : this.defaultData}>{item}</p>
                                 {
-                                    canDelete ? 
+                                    canDelete && item !== defaultSelection ? 
                                         <div className={styles["closePart"]}>
                                             <p onClick={this.deleteData(item,updateData)}>删除模板</p>
                                             <div className={styles["toolTips"]}>
@@ -61,7 +63,6 @@ class Options extends React.Component{
                                         </div>
                                     : null
                                 }
-
                             </li>
                         ) 
                     })

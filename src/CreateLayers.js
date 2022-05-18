@@ -1,10 +1,10 @@
 import sketch from 'sketch';
 import {ShapePath, Color, Text, Layer} from 'sketch/dom';
 
-function createCellBg(basicColor){
+function createCellBg(name,basicColor,borderStyle){
     return new ShapePath({
         shapeType: ShapePath.ShapeType.Rectangle,
-        name: "cellBg",
+        name: name,
         frame: {
             x: 0,
             y: 0,
@@ -19,7 +19,7 @@ function createCellBg(basicColor){
                 color: basicColor,
             }
             ],
-            borders: [],
+            borders: [...borderStyle],
             styleType: Layer,
         },
     })

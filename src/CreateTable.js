@@ -1,5 +1,5 @@
 import sketch from 'sketch';
-import {ShapePath, Color, Group, Text, Layer, SymbolMaster, SymbolInstance,Document,Page } from 'sketch/dom';
+import {Group,SymbolInstance,Style } from 'sketch/dom';
 import BrowserWindow from 'sketch-module-web-view';
 import { getWebview } from 'sketch-module-web-view/remote';
 import { createCellText, createCellBg, createBorderBottom } from './createLayers';
@@ -99,7 +99,7 @@ export default function () {
       case "regular":
         return 5
       case "bold":
-        return 10
+        return 8
       default:
         return 5;
     }
@@ -107,11 +107,22 @@ export default function () {
 
   browserWindow.loadURL(require('../resources/webview.html'))
   browserWindow.webContents.on('insert', function (renderHead, renderData, controlData, cellSize) {
-
+    var appVersion;
     var document = context.document;
-    var selectedLayers = document.currentPage().selectedLayers().layers();
     var artboards = document.currentPage().artboards();
     var currentPage = document.currentPage();
+    var selectedLayers;
+    if(BCSketchInfo){ //sketch 71 之后获取版本号的方式
+      appVersion = BCSketchInfo.shared().metadata().appVersion
+    }else{ //sketch 71 之前获取版本号的方式
+      appVersion = MSApplicationMetadata.metadata().appVersion
+    }
+    if(appVersion >= 84){ //sketch 84 之前从 currentPage() 中获取选中图层的方式
+      selectedLayers = document.currentPage().selectedLayers();
+    }else{ //sketch 84 之后从 currentPage() 中获取选中图层的方式
+      selectedLayers = document.currentPage().selectedLayers().layers();
+    }
+    
 
     let parentOfSmartTable;
     if(selectedLayers.count() != 0){
@@ -166,17 +177,20 @@ export default function () {
 
     let styles_TD = {
       cellBg:{
-        color:controlData.fill.basicColor.toUpperCase()
+        color:controlData.fill.basicColor,
+        intervalColor:controlData.fill.intervalColor,
+        border:controlData.border.intervalColor
       },
       text:{
-        textColor:controlData.textStyle.basicColor.toUpperCase(),
+        textColor:controlData.textStyle.basicColor,
+        fontFamily:"PingFang SC",
         fontSize:controlData.textStyle.fontSize,
         fontWeight:fontWeight_TD,
         alignment:"left",
         borders:[]
       },
       borderBottom:{
-        color:controlData.border.basicColor.toUpperCase()
+        color:controlData.border.basicColor
       },
       padding:{
         left:b_left,
@@ -188,17 +202,19 @@ export default function () {
 
     let styles_TH = {
       cellBg:{
-        color:controlData.theadFill.basicColor.toUpperCase()
+        color:controlData.theadFill.basicColor,
+        border:controlData.border.intervalColor
       },
       text:{
-        textColor:controlData.theadTextStyle.basicColor.toUpperCase(),
+        textColor:controlData.theadTextStyle.basicColor,
+        fontFamily:"PingFang SC",
         fontSize:controlData.theadTextStyle.fontSize,
         fontWeight:fontWeight_TH,
         alignment:"left",
         borders:[]
       },
       borderBottom:{
-        color:controlData.border.basicColor.toUpperCase()
+        color:controlData.border.basicColor
       },
       padding:{
         left:b_left,
@@ -208,34 +224,77 @@ export default function () {
       }
     }
 
-    //表头&表格背景
-    const tdCellBg = createCellBg(styles_TH.cellBg.color);
-    const thCellBg = createCellBg(styles_TD.cellBg.color);
-  
+    let cellBg_hasBorder,cellBg_hasIntervalColor;
+    if(controlData.border.intervalColor != ""){
+      cellBg_hasBorder = true;
+    }else{
+      cellBg_hasBorder = false;
+    }
+
+    if(controlData.fill.intervalColor !== ""){
+      cellBg_hasIntervalColor = true;
+    }else{
+      cellBg_hasIntervalColor = false;
+    }
+
+    let interval_border_style =[{
+      color:controlData.border.intervalColor,
+      fillType:Style.FillType.Color,
+      position:Style.BorderPosition.Center
+    }]
+
     //表头&表格文本
-    const tdCellText = createCellText(styles_TD.text,b_left);
-    const thCellText = createCellText(styles_TH.text,b_left);
+    let tdCellText = createCellText(styles_TD.text,b_left);
+    let thCellText = createCellText(styles_TH.text,b_left);
 
     //表头&表格下方分割线
-    const tdBorderBottom = createBorderBottom(styles_TD.borderBottom.color);
-    const thBorderBottom = createBorderBottom(styles_TH.borderBottom.color);
-    
-    //固定元素
-    fix(thCellBg,["left","right","top","bottom"]);
-    fix(tdCellBg,["left","right","top","bottom"]);
+    let tdBorderBottom = createBorderBottom(styles_TD.borderBottom.color);
+    let thBorderBottom = createBorderBottom(styles_TH.borderBottom.color);
+
+    //表头&表格背景
+    let tdCellBg,tdCellBg_interval,thCellBg;
+    let layersArr_TD,layersArr_TH,layersArr_TD_interval;
+
+    if(cellBg_hasIntervalColor){
+      //如果有了隔行换色，就TD单元格就不应该有边框了，无论何种边框。
+      tdCellBg = createCellBg("cellBg_interval",styles_TD.cellBg.color,[]);
+      thCellBg = createCellBg("cellBg",styles_TH.cellBg.color,[]);
+      tdCellBg_interval = createCellBg("cellBg_interval",styles_TD.cellBg.intervalColor,[]);
+
+      let copyTdCellText = tdCellText.duplicate();
+      fix(copyTdCellText,["left","width"]);
+
+      layersArr_TD = [tdCellBg,tdCellText];
+      layersArr_TH = [thCellBg,thCellText,thBorderBottom];
+      layersArr_TD_interval = [tdCellBg_interval,copyTdCellText];
+    }else{
+      //没有了隔行换色，就需要考虑是否有border了
+      if(cellBg_hasBorder){
+        tdCellBg = createCellBg("cellBg",styles_TD.cellBg.color,interval_border_style);
+        thCellBg = createCellBg("cellBg",styles_TH.cellBg.color,interval_border_style);
+        layersArr_TD = [tdCellBg,tdCellText];
+        layersArr_TH = [thCellBg,thCellText];
+      }else{
+        tdCellBg = createCellBg("cellBg",styles_TD.cellBg.color,[]);
+        thCellBg = createCellBg("cellBg",styles_TH.cellBg.color,[]);
+        layersArr_TD = [tdCellBg,tdCellText,tdBorderBottom];
+        layersArr_TH = [thCellBg,thCellText,thBorderBottom];
+      }
+
+    }
+
     fix(thCellText,["left","width"]);
     fix(tdCellText,["left","width"]);
     fix(thBorderBottom,["bottom","height"]);
     fix(tdBorderBottom,["bottom","height"]);
-        
-    let layersArr_TD = [tdCellBg,tdCellText,tdBorderBottom];
-    let layersArr_TH = [thCellBg,thCellText,thBorderBottom];
-        
-    let willUsedSymbolMaster_TD = createNewSymbolMaster("TD","UnSaved",layersArr_TD,styles_TD)
-    let willUsedSymbolMaster_TH = createNewSymbolMaster("TH","UnSaved",layersArr_TH,styles_TH)
 
-    
-    //thead 内容
+    let willUsedSymbolMaster_TD = createNewSymbolMaster("TD","UnSaved",layersArr_TD,styles_TD);
+    let willUsedSymbolMaster_TD_interval;
+    if(cellBg_hasIntervalColor){
+      willUsedSymbolMaster_TD_interval = createNewSymbolMaster("TD","UnSaved_interval",layersArr_TD_interval,styles_TD);
+    }
+    let willUsedSymbolMaster_TH = createNewSymbolMaster("TH","UnSaved",layersArr_TH,styles_TH);
+
     renderHead.forEach((cell, cellIndex) => {
       const 
       cellGroup_frame_x = cellWidthArr.reduce(addReducer),
@@ -263,7 +322,6 @@ export default function () {
       cellGroupArr.push(cellGroup);
       cellWidthArr.push(cellGroup.frame.width);
       cellHeightArr.push(cellGroup.frame.height)
-
     })
 
     //将上面的单元格编组放入到 行内容编组中
@@ -285,12 +343,6 @@ export default function () {
       let 
       cellWidthArr = [0], cellGroupArr = [], cellHeightArr = [];
 
-
-      // const 
-      // rowGroup_frame_y = tbodyRowsHeight.reduce(addReducer), 
-      // rowGroup_frame_width = cellWidthArr.reduce(addReducer),
-      // rowGroup_frame_height = getMaxValue(cellHeightArr);
-
       titleArr.forEach((cell, cellIndex) => {
         
         const //提前取出要用到的值，避免在生成内容时再去计算，这样在速度上会有不小的提升。
@@ -299,17 +351,32 @@ export default function () {
         cellGroup_frame_width = cellSize.width[cellIndex],
         cellGroup_frame_height = cellSize.height[rowIndex + 1];
 
-        var cellGroup = new SymbolInstance({
-          name:cellGroup_name,
-          parent:parentOfSmartTable,
-          frame: {
-            x: cellGroup_frame_x,
-            y: 0,
-            width: cellGroup_frame_width,
-            height: cellGroup_frame_height
-          },
-          master:willUsedSymbolMaster_TD,
-        })
+        var cellGroup;
+        if(cellBg_hasIntervalColor && rowIndex%2 == 1){
+          cellGroup = new SymbolInstance({
+            name:cellGroup_name,
+            parent:parentOfSmartTable,
+            frame: {
+              x: cellGroup_frame_x,
+              y: 0,
+              width: cellGroup_frame_width,
+              height: cellGroup_frame_height
+            },
+            master:willUsedSymbolMaster_TD_interval,
+          })
+        }else{
+          cellGroup = new SymbolInstance({
+            name:cellGroup_name,
+            parent:parentOfSmartTable,
+            frame: {
+              x: cellGroup_frame_x,
+              y: 0,
+              width: cellGroup_frame_width,
+              height: cellGroup_frame_height
+            },
+            master:willUsedSymbolMaster_TD,
+          })
+        }
 
         const override = {
           value:row[cell].toString() === "" ? " " : row[cell].toString(),
@@ -340,14 +407,6 @@ export default function () {
       tbodyRowsHeight.push(rowGroup.frame.height)
 
     })
-
-    
-
-    // const 
-    // thead_frame_width = rowGroup.frame.width,
-    // thead_frame_height = rowGroup.frame.height,
-    // tbody_frame_widht = tbodyRowsGroup[0].frame.width,
-    // tbody_frame_height = tbodyRowsHeight.reduce(addReducer);
 
     let thead = new Group({
       name: 'thead',

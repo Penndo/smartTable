@@ -55,36 +55,61 @@ function createNewSymbolMaster(TH_TD,modalName,layersArr,styles){
             let symbolMasterContainedLayers = symbolMaster.layers();
             let equal;
             let equals = [];//收集所有 layer 的样式和传过来的参数是否相同。
-            symbolMasterContainedLayers.forEach((layer)=>{
-                let jsLayer = sketch.fromNative(layer);
-                //判断图层名，然后根据图层名再去和指定的参数进行对比
+            symbolMasterContainedLayers.forEach((layer,index)=>{
                 let layerName = layer.name();
-                switch (layerName.substring(0)) {
-                    case "cellBg":
-                        let cellBgEqual = jsLayer.style.fills[0].color.substring(0,7).toUpperCase() == styles.cellBg.color;
-                        equals.push(cellBgEqual)
-                        break;
-                    case "layerName":
-                        let textColor = jsLayer.style.textColor.substring(0,7).toUpperCase() == styles.text.textColor;
-                        let fontSize = jsLayer.style.fontSize == styles.text.fontSize;
-                        let fontWeight = jsLayer.style.fontWeight == styles.text.fontWeight;
-                        let padding_left = jsLayer.frame.x == styles.padding.left;
-                        console.log(typeof jsLayer.frame.x,typeof styles.padding.left, padding_left);
-                        let textStyleEqual = textColor && fontSize && fontWeight && padding_left;
-                        equals.push(textStyleEqual);
-                        break;
-                    case "borderBottom":
-                        let borderBottomEqual = jsLayer.style.fills[0].color.substring(0,7).toUpperCase() == styles.borderBottom.color;
-                        equals.push(borderBottomEqual)
-                        break;
-                    default:
-                        break;
-                }
-                // var textStyleEqual = false;
-                // textStyleEqual = jsLayer.style.fills[0].fill.color === 
+                let jsLayer = sketch.fromNative(layer);
+                //需要先判断一下原有的包含图层和现在传入的是否一致吧，然后再去判断属性是否相同
+                if(symbolMasterContainedLayers.count() == layersArr.length && layer.name() == layersArr[index].name){
+                    switch (layerName.substring(0)) {
+                        case "cellBg_interval":
+                            let cellBg_interval_color = jsLayer.style.fills[0].color.substring(0,7).toUpperCase() == styles.cellBg.intervalColor.toUpperCase();
+                            // let cellBg_interval_border = true;
+                            // if(jsLayer.style.borders[0] == undefined && styles.cellBg.border == "" ){
+                            //     cellBg_interval_border = true;
+                            // }else if(jsLayer.style.borders[0] != undefined && styles.cellBg.border != ""){
+                            //     cellBg_interval_border = jsLayer.style.borders[0].color.substring(0,7) == styles.cellBg.border;
+                            // }else{
+                            //     cellBg_interval_border = false;
+                            // }
+                            // let cellBg_interval_equal = cellBg_interval_color && cellBg_interval_border;
+                            equals.push(cellBg_interval_color);
+                            break;
+                        case "cellBg":
+                            console.log("TH问题")
+                            console.log(jsLayer.style.borders[0],styles.cellBg.border)
+                            let cellBgEqual = jsLayer.style.fills[0].color.substring(0,7).toUpperCase() == styles.cellBg.color.toUpperCase();
+                            let cellBgBorder = true;
+                            if(jsLayer.style.borders[0] == undefined && styles.cellBg.border == "" ){
+                                cellBgBorder = true;
+                            }else if(jsLayer.style.borders[0] != undefined && styles.cellBg.border != ""){
+                                cellBgBorder = jsLayer.style.borders[0].color.substring(0,7) == styles.cellBg.border;
+                            }else{
+                                cellBgBorder = false;
+                            }
+                            let cellBgStyleEqual = cellBgEqual && cellBgBorder;
+                            equals.push(cellBgStyleEqual);
+                            break;
+                        case "layerName":
+                            let textColor = jsLayer.style.textColor.substring(0,7).toUpperCase() == styles.text.textColor.toUpperCase();
+                            let fontSize = jsLayer.style.fontSize == styles.text.fontSize;
+                            let fontWeight = jsLayer.style.fontWeight == styles.text.fontWeight;
+                            let padding_left = jsLayer.frame.x == styles.padding.left;
+                            let textStyleEqual = textColor && fontSize && fontWeight && padding_left;
+                            equals.push(textStyleEqual);
+                            break;
+                        case "borderBottom":
+                            let borderBottomEqual = jsLayer.style.fills[0].color.substring(0,7).toUpperCase() == styles.borderBottom.color.toUpperCase();
+                            equals.push(borderBottomEqual)
+                            break;
+                        default:
+                            break;
+                    }
+                }else{
+                    equals.push(false)
+                }                
             })
             equal = equals.every((a) => a == true);
-            //如果全部匹配到，说明存在已经重复的组件样式，不再新增。
+            //如果全部匹配到，退出循环。说明存在已经重复的组件样式，不再新增。
             if (equal) {
                 matched = true;
                 willUsedSymbolMaster = symbolMaster;
