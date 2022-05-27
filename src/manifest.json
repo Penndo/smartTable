@@ -15,16 +15,16 @@
       }
     },
     {
-      "name": "CreateSymbol",
-      "identifier": "CreateSymbol",
+      "name": "ArrangeCells",
+      "identifier": "ArrangeCells",
       "shortcut":"ctrl shift b",
-      "script": "./CreateSymbol.js"
+      "script": "./ArrangeCells.js"
     }
   ],
   "menu": {
     "title": "smartTable",
     "items": [
-      "CreateTable","CreateSymbol"
+      "CreateTable","ArrangeCells"
     ]
   }
 }

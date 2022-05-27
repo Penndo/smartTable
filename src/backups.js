@@ -1,13 +1,3 @@
-import sketch from 'sketch';
-import {ShapePath, Color, Layer, SymbolMaster,SymbolInstance,Document,Text,Group } from 'sketch/dom';
-
-const selectedDocument = Document.getSelectedDocument();
-const selectedPages = selectedDocument.pages;
-const selectedLayers = sketch.getSelectedDocument().selectedLayers.layers;
-const symbols = context.document.currentPage().symbols();
-const selection = context.selection;
-
-//
 function fix(item,positionArr){
     let itemNative = item.sketchObject;
     itemNative.hasFixedLeft = false;
@@ -103,7 +93,7 @@ export default function(){
     // console.log(fontFamilyNames);
     // console.log(UIFont.fontNamesForFamilyName("PingFang SC"));
     //获取字体家族中的每一个字重
-    console.log(fontFamilyNames)
+    // console.log(fontFamilyNames)
     // fontFamilyNames.forEach((fontFamilyName)=>{
     //     console.log(UIFont.fontNamesForFamilyName(fontFamilyName))
     // })
@@ -372,4 +362,3 @@ export default function(){
     //     layers: [instance],
     // })
 }
-

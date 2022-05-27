@@ -3,7 +3,7 @@ import {Group,SymbolInstance,Style } from 'sketch/dom';
 import BrowserWindow from 'sketch-module-web-view';
 import { getWebview } from 'sketch-module-web-view/remote';
 import { createCellText, createCellBg, createBorderBottom } from './createLayers';
-import { createNewSymbolMaster } from './Help';
+import { createNewSymbolMaster,getMaxValue} from './Help';
 import UI from 'sketch/ui';
 
 const webviewIdentifier = 'smarttable.webview'
@@ -44,16 +44,16 @@ export default function () {
     return a + b;
   }
 
-  //获取最大值
-  function getMaxValue(arr) {
-    let maxValue = "";
-    if (isNaN(Math.max(arr))) {
-      maxValue = arr[0]
-    } else {
-      maxValue = Math.max(...arr)
-    }
-    return maxValue
-  }
+  // //获取最大值
+  // function getMaxValue(arr) {
+  //   let maxValue = "";
+  //   if (isNaN(Math.max(arr))) {
+  //     maxValue = arr[0]
+  //   } else {
+  //     maxValue = Math.max(...arr)
+  //   }
+  //   return maxValue
+  // }
 
   //固定位置
   function fix(item,positionArr){
@@ -109,8 +109,8 @@ export default function () {
   browserWindow.webContents.on('insert', function (renderHead, renderData, controlData, cellSize) {
     var appVersion;
     var document = context.document;
-    var artboards = document.currentPage().artboards();
     var currentPage = document.currentPage();
+    var artboards = currentPage.artboards();
     var selectedLayers;
     if(BCSketchInfo){ //sketch 71 之后获取版本号的方式
       appVersion = BCSketchInfo.shared().metadata().appVersion

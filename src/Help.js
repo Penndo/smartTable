@@ -3,10 +3,20 @@ import {ShapePath, Color, Group, Text, Layer, SymbolMaster, SymbolInstance,Docum
 
 var document = context.document;
 var documentData = document.documentData();
-var symbolsPage = documentData.symbolsPageOrCreateIfNecessary();
+
+function getMaxValue(arr) {
+    let maxValue = "";
+    if (isNaN(Math.max(...arr))) {
+      maxValue = arr[0]
+    } else {
+      maxValue = Math.max(...arr)
+    }
+    return maxValue
+}
 
 
 function createNewSymbolMaster(TH_TD,modalName,layersArr,styles){
+    var symbolsPage = documentData.symbolsPageOrCreateIfNecessary();
 
     let position;
 
@@ -63,20 +73,9 @@ function createNewSymbolMaster(TH_TD,modalName,layersArr,styles){
                     switch (layerName.substring(0)) {
                         case "cellBg_interval":
                             let cellBg_interval_color = jsLayer.style.fills[0].color.substring(0,7).toUpperCase() == styles.cellBg.intervalColor.toUpperCase();
-                            // let cellBg_interval_border = true;
-                            // if(jsLayer.style.borders[0] == undefined && styles.cellBg.border == "" ){
-                            //     cellBg_interval_border = true;
-                            // }else if(jsLayer.style.borders[0] != undefined && styles.cellBg.border != ""){
-                            //     cellBg_interval_border = jsLayer.style.borders[0].color.substring(0,7) == styles.cellBg.border;
-                            // }else{
-                            //     cellBg_interval_border = false;
-                            // }
-                            // let cellBg_interval_equal = cellBg_interval_color && cellBg_interval_border;
                             equals.push(cellBg_interval_color);
                             break;
                         case "cellBg":
-                            console.log("TH问题")
-                            console.log(jsLayer.style.borders[0],styles.cellBg.border)
                             let cellBgEqual = jsLayer.style.fills[0].color.substring(0,7).toUpperCase() == styles.cellBg.color.toUpperCase();
                             let cellBgBorder = true;
                             if(jsLayer.style.borders[0] == undefined && styles.cellBg.border == "" ){
@@ -138,4 +137,4 @@ function createNewSymbolMaster(TH_TD,modalName,layersArr,styles){
     return willUsedSymbolMaster;
 }
 
-export {createNewSymbolMaster}
+export {createNewSymbolMaster,getMaxValue}

@@ -154,12 +154,14 @@ export default function App(){
                     historyStorageData:selectes
                 }})
                 
-                const {basicColor,intervalColor,switchState} = data.controlData.fill
+                const {basicColor,intervalColor,switchState} = data.controlData.fill;
                 if(switchState === true){
-                    setLastPickedColor(intervalColor === "" ? basicColor : intervalColor)
+                    setLastPickedColor(intervalColor === "" ? basicColor : intervalColor);
                 }else if(switchState === false){
-                    setLastPickedColor(basicColor)
+                    setLastPickedColor(basicColor);
                 }
+
+                setHeaderIndependentStyle(false);
 
             })
         })
